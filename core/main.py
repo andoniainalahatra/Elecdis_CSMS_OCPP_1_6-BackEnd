@@ -20,14 +20,19 @@ app = FastAPI()
 def on_startup():
     init_db()
 
-@app.get("/heroes/", response_model=List[Hero])
-def read_heroes(session: Session = Depends(get_session)):
-    heroes = session.exec(select(Hero)).all()
-    return heroes
+# @app.get("/heroes/", response_model=List[Hero])
+# def read_heroes(session: Session = Depends(get_session)):
+#     heroes = session.exec(select(Hero)).all()
+#     return heroes
 
-@app.post("/heroes/", response_model=Hero)
-def create_hero(hero: Hero, session: Session = Depends(get_session)):
-    session.add(hero)
-    session.commit()
-    session.refresh(hero)
-    return hero
+# @app.post("/heroes/", response_model=Hero)
+# def create_hero(hero: Hero, session: Session = Depends(get_session)):
+#     session.add(hero)
+#     session.commit()
+#     session.refresh(hero)
+#     return hero
+
+@app.get("/users/", response_model=List[models.elecdis_model.User])
+def read_users(session: Session = Depends(get_session)):
+    users = session.exec(select(models.elecdis_model.User)).all()
+    return users
