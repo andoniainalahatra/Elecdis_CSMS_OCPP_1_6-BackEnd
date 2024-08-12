@@ -36,3 +36,11 @@ def on_startup():
 def read_users(session: Session = Depends(get_session)):
     users = session.exec(select(models.elecdis_model.User)).all()
     return users
+
+
+@app.post("/users/", response_model=models.elecdis_model.User)
+def create_user(user: models.elecdis_model.User, session: Session = Depends(get_session)):
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
