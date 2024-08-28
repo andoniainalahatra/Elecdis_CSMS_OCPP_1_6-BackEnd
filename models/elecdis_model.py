@@ -52,7 +52,7 @@ class TariffGroup(TimestampMixin, table=True):
 class PaymentMethodUser(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     id_payment_method: int = Field(foreign_key="paymentmethod.id")
-    id_user: int = Field(foreign_key="user.id")
+    id_user: int = Field(foreign_key="user_table.id")
 
     user: Optional["User"] = Relationship(back_populates="payment_methods")
     payment_method: Optional["PaymentMethod"] = Relationship(back_populates="payment_method_users")
@@ -114,6 +114,7 @@ class Partner(TimestampMixin, table=True):
 
 
 class User(TimestampMixin, table=True):
+    __tablename__ = "user_table"
     id: Optional[int] = Field(default=None, primary_key=True)
     first_name: str
     last_name: str
@@ -131,7 +132,7 @@ class User(TimestampMixin, table=True):
 
     payment_methods: List["PaymentMethodUser"] = Relationship(back_populates="user")
 
-    __table_args__ = (Index("ix_user_id", "id"),)
+    __table_args__ = (Index("ix_user_table_id", "id"),)
 
 
 class Subscription(TimestampMixin, table=True):
@@ -168,7 +169,7 @@ class Session(TimestampMixin, table=True):
     start_time: datetime
     end_time: datetime
     connector_id: int = Field(foreign_key="connector.id")
-    user_id: int = Field(foreign_key="user.id")
+    user_id: int = Field(foreign_key="user_table.id")
 
     connector: Optional["Connector"] = Relationship(back_populates="sessions")
     user: Optional["User"] = Relationship(back_populates="sessions")
@@ -180,7 +181,7 @@ class Session(TimestampMixin, table=True):
 
 class Tag(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    user_id: Optional[int] = Field(default=None, foreign_key="user_table.id")
     tag: str
 
     user: Optional["User"] = Relationship(back_populates="tags")
@@ -192,5 +193,5 @@ class Tag(TimestampMixin, table=True):
 
 class Subscription_History(TimestampMixin, table=True):
     id : Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
+    user_id: int = Field(foreign_key="user_table.id")
     subscription_id: int = Field(foreign_key="subscription.id")
