@@ -11,6 +11,7 @@ from core.database import get_session
 from models.elecdis_model import *
 from api.users.UserServices import *
 from typing import Annotated
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -33,9 +34,14 @@ class UserRegister(BaseModel):
     password: str
     confirm_password: str
     email: str
+    phone:str
     id_subscription: int
     id_user_group: int
     id_partner: int | None = None
+
+class LoginData(BaseModel):
+    username:str
+    password:str
 
 def verify_password(password, hashed_password):
     return pwd_context.verify(password, hashed_password)
@@ -104,31 +110,49 @@ def verify_password_length(password: str):
     if len(password) < PASSWORD_LENGTH:
         raise Exception("Password must be at least 8 characters")
 
+def trim_data(user):
+    user.first_name = user.first_name.strip()
+    user.last_name = user.last_name.strip()
+    user.email = user.email.strip()
+    user.phone = user.phone.strip()
+    user.password= user.password.strip()
+    return user
+def check_empty_fields(user: User):
+    fields_to_check = ['first_name', 'last_name', 'email', 'phone', 'password']
+    for field in fields_to_check:
+        value = getattr(user, field, None)
+        if value is None or value.strip() == "":
+            raise ValueError(f"The field '{field}' cannot be empty.")
+    return user
 
-def register(newUser: User, session: Session):
-    verify_email_structure(newUser.email)
-    verify_password_length(newUser.password)
-    if check_email_if_exists(newUser.email, session):
-        raise EmailException(f"Email {newUser.email} already exists")
+
+def validate_user(user, session : Session, check_email):
+    verify_email_structure(user.email)
+    verify_password_length(user.password)
+    if check_email==True :
+        if check_email_if_exists(user.email, session):
+            raise EmailException(f"Email {user.email} already exists")
     # check subscription
-    subscription = session.exec(select(Subscription).where(Subscription.id == newUser.id_subscription)).first()
+    subscription = session.exec(select(Subscription).where(Subscription.id == user.id_subscription)).first()
     if subscription is None:
-        raise SubscriptionException(f"Subscription {newUser.id_subscription} does not exist")
+        raise SubscriptionException(f"Subscription {user.id_subscription} does not exist")
     # check userGroup
-    userGroup = session.exec(select(UserGroup).where(UserGroup.id == newUser.id_user_group)).first()
+    userGroup = session.exec(select(UserGroup).where(UserGroup.id == user.id_user_group)).first()
     # check partner
-    if newUser.id_partner is not None:
-        partner = session.exec(select(Partner).where(Partner.id == newUser.id_partner)).first()
+    if user.id_partner is not None:
+        partner = session.exec(select(Partner).where(Partner.id == user.id_partner)).first()
         if partner is None:
-            raise Exception(f"Partner {newUser.id_partner} does not exist")
+            raise Exception(f"Partner {user.id_partner} does not exist")
     if userGroup is None:
-        raise Exception(f"UserGroup {newUser.id_userModel} does not exist")
-
+        raise Exception(f"UserGroup {user.id_userModel} does not exist")
+def register(newUser: User, session: Session):
+    validate_user(newUser, session,True)
+    newUser = trim_data(newUser)
+    check_empty_fields(newUser)
     newUser.password = get_password_hash(newUser.password)
     session.add(newUser)
     session.commit()
     session.refresh(newUser)
-    # retourne le token et l'id de l'Utilisateur
     return newUser
 def login (username : str, password:str, session:Session):
     user = authenticate_user(session, username, password)
@@ -152,9 +176,25 @@ class RoleChecker :
             detail="You are not authorized to access this resource")
 
 
+def update_user(user_to_update:UserUpdate,  session: Session):
+    validate_user(user_to_update,session, check_email=False)
+    user_to_update = trim_data(user_to_update)
+    check_empty_fields(user_to_update)
+    user: User = session.exec(select(User).where(User.id == user_to_update.id)).first()
+    user.first_name = user_to_update.first_name
+    user.last_name = user_to_update.last_name
+    user.email = user_to_update.email
+    user.phone = user_to_update.phone
+    user.id_user_group = user_to_update.id_user_group
+    user.id_subscription = user_to_update.id_subscription
+    user.id_partner = user_to_update.id_partner
+    user.password= get_password_hash(user_to_update.password)
+    session.add(user)
+    session.commit()
+    return user
 
 @router.post("/login", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(form_data:LoginData ):
     session = next(get_session())
     try:
         generated_token = login(form_data.username, form_data.password, session)
@@ -171,6 +211,7 @@ async def register_user(registered_user: UserRegister):
     newUser = User(first_name=registered_user.first_name,
                    last_name=registered_user.last_name,
                    email=registered_user.email,
+                   phone=registered_user.phone,
                    id_subscription=registered_user.id_subscription,
                    id_user_group=registered_user.id_user_group,
                    id_partner=registered_user.id_partner,

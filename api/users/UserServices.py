@@ -1,8 +1,11 @@
+from typing import List, Optional
+
 import bcrypt
 from fastapi import Depends
 
+# from api.auth.UserAuthentification import validate_user, get_password_hash
 from core.database import get_session
-from models.elecdis_model import User, Tag, UserGroup
+from models.elecdis_model import User, Tag, Transaction, UserGroup, Session as SessionModel
 from sqlmodel import Session, create_engine, select, text
 from api.exeptions.EmailException import EmailException
 from pydantic import BaseModel
@@ -11,8 +14,22 @@ class UserData(BaseModel):
     id: int
     first_name: str
     last_name: str
-    email:str
-    role:str
+    email: str
+    role: str
+    phone: str
+    subscription: Optional[str]
+    partner: Optional[str]
+
+class UserUpdate(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: str
+    id_user_group: int
+    phone: str
+    password: str
+    id_subscription: Optional[int]
+    id_partner: Optional[int]
 
 
 def get_all_Admins(session: Session = Depends(get_session)):
@@ -36,7 +53,10 @@ def get_list_user_data(users : list[User]):
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
-        role=user.user_group.name
+        role=user.user_group.name,
+        phone=user.phone,
+        subscription=user.subscription.type_subscription if user.subscription else None,
+        partner=user.partner.name if user.partner else None
     ) for user in users]
 
 
@@ -46,5 +66,27 @@ def get_user_data(user):
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
-        role=user.user_group.name
+        role=user.user_group.name,
+        phone=user.phone,
+        subscription=user.subscription.type_subscription if user.subscription else None,
+        partner=user.partner.name if user.partner else None
     )
+
+def get_user_sessions_list(user, session):
+    sessionLists: List[SessionModel] = session.exec(select(SessionModel).where(SessionModel.user_id == user.id)).all()
+    return sessionLists
+
+
+def get_user_transactions_list(user, session):
+    sessions_id = [session_user.id for session_user in get_user_sessions_list(user,session)]
+    transactions: List[Transaction] = session.exec(select(Transaction).where(Transaction.session_id.in_(sessions_id))).all()
+    return transactions
+def get_user_profile(user : UserData, session : Session):
+    # sessions = get_user_sessions_list(user, session)
+    transactions = get_user_transactions_list(user, session)
+    return transactions
+
+def get_user_tags_list(user, session):
+    tags : List[Tag]= session.exec(select(Tag).where(Tag.user_id == user.id)).all()
+    return tags
+
