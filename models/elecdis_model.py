@@ -3,6 +3,7 @@ from typing import List, Optional
 from datetime import date, datetime
 from enum import Enum
 from sqlalchemy import Index
+from sqlalchemy import PrimaryKeyConstraint, Index, UniqueConstraint
 
 
 class StatusEnum(str, Enum):
@@ -16,11 +17,13 @@ class TimestampMixin(SQLModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 
+
 class ChargePoint(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-
-    status: str
-
+    serial_number : Optional[str]
+    charge_point_model : Optional[str]
+    charge_point_vendors : Optional[str]
+    status: Optional[str]
     connectors: List["Connector"] = Relationship(back_populates="charge_point")
 
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
@@ -29,15 +32,35 @@ class ChargePoint(TimestampMixin, table=True):
 # Pour les autres classes, les modifications restent les mêmes.
 
 class Connector(TimestampMixin, table=True):
+    # TY NO MAKANY @ LE HISTORIQUE
     id: Optional[int] = Field(default=None, primary_key=True)
     charge_point_id: Optional[int] = Field(default=None, foreign_key="chargepoint.id")
     connector_type: str
+    # NUMERO
+    connector_id: Optional[int]
 
     sessions: List["Session"] = Relationship(back_populates="connector")
     charge_point: Optional["ChargePoint"] = Relationship(back_populates="connectors")
+    historique_status: List["Historique_status"] = Relationship(back_populates="connector")
+    historique_metter_value: List["Historique_metter_value"] = Relationship(back_populates="connector")
+    __table_args__ = (
+        # PrimaryKeyConstraint('id', 'charge_point_id'),
+        UniqueConstraint('id', 'charge_point_id', name='uq_connector_id_charge_point_id'),
 
-    __table_args__ = (Index("ix_connector_id", "id"),)
+        Index("ix_connector_id", "id"),)
 
+class Historique_status(TimestampMixin, table=True):
+    id : Optional[int] = Field(default=None, primary_key=True)
+    # le id an'le connecteur no eto fa tsy le connector_id
+    real_connector_id: Optional[int] = Field(foreign_key="connector.id")
+    statut: str
+    connector: Optional["Connector"] = Relationship(back_populates="historique_status")
+
+class Historique_metter_value(TimestampMixin, table=True):
+    id : Optional[int] = Field(default=None, primary_key=True)
+    real_connector_id: Optional[int] = Field(foreign_key="connector.id")
+    valeur: float
+    connector: Optional["Connector"] = Relationship(back_populates="historique_metter_value")
 
 class TariffGroup(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -49,15 +72,6 @@ class TariffGroup(TimestampMixin, table=True):
     __table_args__ = (Index("ix_tariffgroup_id", "id"),)
 
 
-class PaymentMethodUser(TimestampMixin, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    id_payment_method: int = Field(foreign_key="paymentmethod.id")
-    id_user: int = Field(foreign_key="user_table.id")
-
-    user: Optional["User"] = Relationship(back_populates="payment_methods")
-    payment_method: Optional["PaymentMethod"] = Relationship(back_populates="payment_method_users")
-
-    __table_args__ = (Index("ix_paymentmethoduser_id", "id"),)
 
 
 class UserGroup(TimestampMixin, table=True):
@@ -121,7 +135,7 @@ class User(TimestampMixin, table=True):
     email: str
     password: str
     phone:Optional[str]
-    id_user_group: int = Field(foreign_key="usergroup.id")
+    id_user_group: Optional[int] = Field(foreign_key="usergroup.id")
     id_subscription: Optional[int] = Field(default=None, foreign_key="subscription.id")
     id_partner: Optional[int] = Field(default=None, foreign_key="partner.id")
 
@@ -134,6 +148,15 @@ class User(TimestampMixin, table=True):
     payment_methods: List["PaymentMethodUser"] = Relationship(back_populates="user")
 
     __table_args__ = (Index("ix_user_table_id", "id"),)
+class PaymentMethodUser(TimestampMixin, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    id_payment_method: int = Field(foreign_key="paymentmethod.id")
+    id_user: int = Field(foreign_key="user_table.id")
+
+    user: Optional["User"] = Relationship(back_populates="payment_methods")
+    payment_method: Optional["PaymentMethod"] = Relationship(back_populates="payment_method_users")
+
+    __table_args__ = (Index("ix_paymentmethoduser_id", "id"),)
 
 
 class Subscription(TimestampMixin, table=True):
