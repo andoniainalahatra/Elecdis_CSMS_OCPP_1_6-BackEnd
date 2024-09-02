@@ -41,3 +41,8 @@ websockets==12.0
 python-jose==3.3.0
 passlib==1.7.4
 bcrypt==4.2.0
+ocpp==0.26.0
+propan
+aio_pika==9.4.3
+asyncio==3.4.3
+aiokafka
