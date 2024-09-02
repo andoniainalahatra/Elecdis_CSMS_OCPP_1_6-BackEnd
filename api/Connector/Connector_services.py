@@ -5,18 +5,17 @@ from fastapi import HTTPException
 
 
 def create_connector(connector: Connector_create, session : Session):
-    try:
-        charge=session.exec(select(ChargePoint).where(ChargePoint.id == connector.charge_point_id)).first()
-        if charge is None:
-            raise Exception(f"ChargePoint with id {connector.charge_point_id} does not exist.")
+    
+    charge=session.exec(select(ChargePoint).where(ChargePoint.id == connector.charge_point_id)).first()
+    if charge is None:
+        raise Exception(f"ChargePoint with id {connector.charge_point_id} does not exist.")
             
-        conne : Connector = Connector(connector_type=connector.connector_type, connector_id=connector.connector_id,charge_point_id=connector.charge_point_id,status=StatusEnum.unavailable,valeur=0)
-        session.add(conne)
-        session.commit()
-        session.refresh(conne)
-        return "insertion réussie"
-    except Exception as e:
-        return {"messageError": f"{str(e)}"}
+    conne : Connector = Connector(connector_type=connector.connector_type, connector_id=connector.connector_id,charge_point_id=connector.charge_point_id,status=StatusEnum.unavailable,valeur=0)
+    session.add(conne)
+    session.commit()
+    session.refresh(conne)
+    return "insertion réussie"
+    
 
 def update_connector(id_connector:int,connector:Connector_update,session : Session):
     try:
@@ -33,6 +32,7 @@ def update_connector(id_connector:int,connector:Connector_update,session : Sessi
             raise Exception(f"CP  with id {connector.charge_point_id} does not exist.")
         conne.status=connector.status
         conne.valeur=valeur
+        session.add(conne)
         session.commit()
         session.refresh(conne)
         return "update réussie"
