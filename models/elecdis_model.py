@@ -143,7 +143,7 @@ class User(TimestampMixin, table=True):
     email: str
     password: str
     phone:Optional[str]
-    id_user_group: int = Field(foreign_key="usergroup.id")
+    id_user_group: Optional[int] = Field(foreign_key="usergroup.id")
     id_subscription: Optional[int] = Field(default=None, foreign_key="subscription.id")
     id_partner: Optional[int] = Field(default=None, foreign_key="partner.id")
 

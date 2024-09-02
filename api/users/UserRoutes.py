@@ -40,7 +40,9 @@ def get_user_tags(token: str = Depends(oauth_2_scheme), session: Session = Depen
     return tags
 
 @router.get("/profile")
-def get_user_profile(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session) , user: UserData = Depends(get_current_user)):
+def get_user_profile(
+        token: str = Depends(oauth_2_scheme),
+        session: Session = Depends(get_session) , user: UserData = Depends(get_current_user)):
     transactions = get_user_transactions_list(user, session)
     sessions = get_user_sessions_list(user, session)
     return {"user": user, "transactions": transactions, "sessions": sessions}
@@ -52,3 +54,5 @@ def update_user_profile(user_to_update: UserUpdate, token: str = Depends(oauth_2
     except Exception as e:
         raise HTTPException(status_code= status.HTTP_400_BAD_REQUEST, detail=str(e))
     return {"message": "User updated successfully"}
+
+# @router.post
