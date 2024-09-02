@@ -3,7 +3,9 @@ import asyncio
 from fastapi import APIRouter, HTTPException, status, Depends
 
 from api.users.UserServices import *
-from api.auth.UserAuthentification import oauth_2_scheme, get_current_user, RoleChecker, update_user
+from api.auth.Auth_services import oauth_2_scheme, get_current_user
+from api.auth.RoleChecker import RoleChecker
+from api.auth.Auth_services import update_user
 from typing import Annotated
 
 router = APIRouter()

@@ -6,7 +6,7 @@ from models.elecdis_model import Tag, User
 from sqlmodel import Session, select
 from core.utils import get_datas_from_csv, DEFAULT_USER_PASSWORD
 from api.users.UserServices import get_user_from_email
-from api.auth.UserAuthentification import get_password_hash, verify_email_structure
+from api.auth.Auth_services import get_password_hash, verify_email_structure
 
 
 def create_rfid(rfid: Rfid_create, session: Session, can_commit : bool = True):
