@@ -24,6 +24,8 @@ pip install -r requirements.txt
 docker compose build
 docker-compose up -d
 
+```
+
 3. Configuration .env
 
 ```sh
