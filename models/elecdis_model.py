@@ -10,6 +10,11 @@ class StatusEnum(str, Enum):
     active = "active"
     inactive = "inactive"
     maintenance = "maintenance"
+    available="Available"
+    unavailable="Unavailable"
+    preparing="Preparing"
+    charging="charging"
+
 
 
 class TimestampMixin(SQLModel):
@@ -25,7 +30,9 @@ class ChargePoint(TimestampMixin, table=True):
     charge_point_vendors : Optional[str]
     status: Optional[str]
     connectors: List["Connector"] = Relationship(back_populates="charge_point")
-
+    adresse:Optional[str]
+    latitude:float
+    longitude:float
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
 
 
@@ -38,7 +45,8 @@ class Connector(TimestampMixin, table=True):
     connector_type: str
     # NUMERO
     connector_id: Optional[int]
-
+    valeur:float
+    status: Optional[str]
     sessions: List["Session"] = Relationship(back_populates="connector")
     charge_point: Optional["ChargePoint"] = Relationship(back_populates="connectors")
     historique_status: List["Historique_status"] = Relationship(back_populates="connector")
