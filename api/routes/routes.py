@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from api.users.UserRoutes import router as user_routes
-from api.auth.UserAuthentification import router as auth_routes
+from api.auth.Auth_routes import router as auth_routes
 from api.RFID.RFID_routes import router as rfid_routes
 from api.CP.CP_routes import router as CP_routes
 from api.Connector.Connector_routes import router as Connector_routes

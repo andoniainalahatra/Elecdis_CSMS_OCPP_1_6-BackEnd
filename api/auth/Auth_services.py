@@ -1,19 +1,18 @@
-import asyncio
-from datetime import timedelta, datetime
+from datetime import timedelta
 import re
-
+from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+
+from api.exeptions.EmailException import EmailException
 from api.exeptions.SubscriptionException import SubscriptionException
+from api.users.UserServices import get_user_data, UserUpdate
 from core.database import get_session
 from models.elecdis_model import *
-from api.users.UserServices import *
-from typing import Annotated
-from pydantic import BaseModel
-
-router = APIRouter()
+from sqlmodel import select
 
 SECRET_KEY = "d343fdce6f2ca054a42914a06a0e519e842e2f6412d723acd016fd43715b1a59"
 ALGORITHM = "HS256"
@@ -23,25 +22,9 @@ PASSWORD_LENGTH = 6
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth_2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
 
-class UserRegister(BaseModel):
-    first_name: str
-    last_name: str
-    password: str
-    confirm_password: str
-    email: str
-    phone:str
-    id_subscription: int
-    id_user_group: int
-    id_partner: int | None = None
 
-class LoginData(BaseModel):
-    username:str
-    password:str
 
 def verify_password(password, hashed_password):
     return pwd_context.verify(password, hashed_password)
@@ -162,20 +145,6 @@ def login (username : str, password:str, session:Session):
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
 
-# handle roles and permissions yayyy
-
-class RoleChecker :
-    def __init__(self, allowed_roles: list):
-        self.allowed_roles = allowed_roles
-
-    def __call__(self, user: Annotated[User, Depends(get_current_user)]):
-        if user.role in self.allowed_roles:
-            return True
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="You are not authorized to access this resource")
-
-
 def update_user(user_to_update:UserUpdate,  session: Session):
     validate_user(user_to_update,session, check_email=False)
     user_to_update = trim_data(user_to_update)
@@ -192,39 +161,3 @@ def update_user(user_to_update:UserUpdate,  session: Session):
     session.add(user)
     session.commit()
     return user
-
-@router.post("/login", response_model=Token)
-async def login_for_access_token(form_data:LoginData ):
-    session = next(get_session())
-    try:
-        generated_token = login(form_data.username, form_data.password, session)
-        return generated_token
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-
-
-@router.post("/register", response_model=Token)
-async def register_user(registered_user: UserRegister):
-    if registered_user.password != registered_user.confirm_password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Password and confirm password do not match")
-    newUser = User(first_name=registered_user.first_name,
-                   last_name=registered_user.last_name,
-                   email=registered_user.email,
-                   phone=registered_user.phone,
-                   id_subscription=registered_user.id_subscription,
-                   id_user_group=registered_user.id_user_group,
-                   id_partner=registered_user.id_partner,
-                   password=registered_user.password
-
-                   )
-    session = next(get_session())
-    user = None
-    try:
-        user = register(newUser, session)
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    return login(user.email, registered_user.password, session)
-
-
-
