@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 class Cp_create(BaseModel):
-    id:int
+    id:str
     serial_number:str
     charge_point_model:str
     charge_point_vendors:str
@@ -10,4 +10,6 @@ class Cp_create(BaseModel):
     latitude:float
 
 class Cp_update(BaseModel):
+    charge_point_model:str
+    charge_point_vendors:str
     status:str

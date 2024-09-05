@@ -2,7 +2,7 @@ from pydantic import BaseModel
 class Connector_create(BaseModel):
     connector_type:str
     connector_id:int
-    charge_point_id:int
+    charge_point_id:str
     status:str
     valeur:float
 

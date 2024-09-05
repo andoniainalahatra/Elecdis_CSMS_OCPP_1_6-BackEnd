@@ -24,7 +24,7 @@ class TimestampMixin(SQLModel):
 
 
 class ChargePoint(TimestampMixin, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default=None, primary_key=True)
     serial_number : Optional[str]
     charge_point_model : Optional[str]
     charge_point_vendors : Optional[str]
@@ -43,6 +43,7 @@ class Connector(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     charge_point_id: Optional[int] = Field(default=None, foreign_key="chargepoint.id")
     connector_type: Optional[str]
+
     # NUMERO
     connector_id: Optional[int]
     valeur:Optional[float]= Field(default=0)
