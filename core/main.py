@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+
+from api.mail.email_model import Email_model
 from core.database import init_db
 # router
 from api.routes.routes import routers
@@ -13,6 +15,7 @@ def on_startup():
 
 # ROUTES
 app.include_router(routers)
+
 
 
 

@@ -18,3 +18,9 @@ class UserRegister(BaseModel):
 class LoginData(BaseModel):
     username:str
     password:str
+
+class ResetPassword(BaseModel):
+    email:str
+    code:str
+    new_password:str
+    confirm_password:str
