@@ -31,8 +31,8 @@ class ChargePoint(TimestampMixin, table=True):
     status: Optional[str]
     connectors: List["Connector"] = Relationship(back_populates="charge_point")
     adresse:Optional[str]
-    latitude:float
-    longitude:float
+    latitude:Optional[float]
+    longitude:Optional[float]
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
 
 
@@ -41,11 +41,12 @@ class ChargePoint(TimestampMixin, table=True):
 class Connector(TimestampMixin, table=True):
     # TY NO MAKANY @ LE HISTORIQUE
     id: Optional[int] = Field(default=None, primary_key=True)
-    charge_point_id: Optional[str] = Field(default=None, foreign_key="chargepoint.id")
-    connector_type: str
+    charge_point_id: Optional[int] = Field(default=None, foreign_key="chargepoint.id")
+    connector_type: Optional[str]
+
     # NUMERO
     connector_id: Optional[int]
-    valeur:float
+    valeur:Optional[float]= Field(default=0)
     status: Optional[str]
     sessions: List["Session"] = Relationship(back_populates="connector")
     charge_point: Optional["ChargePoint"] = Relationship(back_populates="connectors")
@@ -154,6 +155,7 @@ class User(TimestampMixin, table=True):
     partner: Optional["Partner"] = Relationship(back_populates="users")
 
     payment_methods: List["PaymentMethodUser"] = Relationship(back_populates="user")
+    reset_codes: List["User_reset_code"] = Relationship(back_populates="user")
 
     __table_args__ = (Index("ix_user_table_id", "id"),)
 class PaymentMethodUser(TimestampMixin, table=True):
@@ -227,3 +229,15 @@ class Subscription_History(TimestampMixin, table=True):
     id : Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user_table.id")
     subscription_id: int = Field(foreign_key="subscription.id")
+
+
+class User_reset_code(TimestampMixin, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user_table.id")
+    code: str
+    is_used: bool
+    expiration_date: datetime
+
+    user: Optional["User"] = Relationship(back_populates="reset_codes")
+
+    __table_args__ = (Index("ix_user_reset_code_id", "id"),)

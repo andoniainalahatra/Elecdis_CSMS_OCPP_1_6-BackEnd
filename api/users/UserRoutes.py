@@ -58,3 +58,9 @@ def update_user_profile(user_to_update: UserUpdate, token: str = Depends(oauth_2
     return {"message": "User updated successfully"}
 
 # @router.post
+@router.get("/{id}")
+def get_user_by_id(id: int, session: Session = Depends(get_session)):
+        user = session.exec(select(User).where(User.id == id)).first()
+        if user is None:
+            raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="User not found")
+        return user
