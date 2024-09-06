@@ -7,7 +7,7 @@ from ocpp.v16.enums import Action, RegistrationStatus
 from ocpp.v16 import call_result
 from propan import apply_types
 import logging
-from api.CP.CP_services import create_cp,update_cp,read_charge_point,read_detail_cp
+from api.CP.CP_services import update_cp
 from api.CP.CP_models import Cp_update
 from models.elecdis_model import StatusEnum
 from core.database import get_session

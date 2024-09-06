@@ -31,8 +31,10 @@ class ChargePoint(TimestampMixin, table=True):
     status: Optional[str]
     connectors: List["Connector"] = Relationship(back_populates="charge_point")
     adresse:Optional[str]
-    latitude:Optional[float]
-    longitude:Optional[float]
+    latitude:float
+    longitude:float
+    state:int
+
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
 
 
@@ -40,9 +42,9 @@ class ChargePoint(TimestampMixin, table=True):
 
 class Connector(TimestampMixin, table=True):
     # TY NO MAKANY @ LE HISTORIQUE
-    id: Optional[int] = Field(default=None, primary_key=True)
-    charge_point_id: Optional[int] = Field(default=None, foreign_key="chargepoint.id")
-    connector_type: Optional[str]
+    id: Optional[str] = Field(primary_key=True)
+    charge_point_id: Optional[str] = Field(default=None, foreign_key="chargepoint.id")
+    connector_type: str
 
     # NUMERO
     connector_id: Optional[int]
@@ -61,13 +63,14 @@ class Connector(TimestampMixin, table=True):
 class Historique_status(TimestampMixin, table=True):
     id : Optional[int] = Field(default=None, primary_key=True)
     # le id an'le connecteur no eto fa tsy le connector_id
-    real_connector_id: Optional[int] = Field(foreign_key="connector.id")
+    real_connector_id: Optional[str] = Field(foreign_key="connector.id")
     statut: str
+    time_last_statut:datetime= Field(nullable=False)
     connector: Optional["Connector"] = Relationship(back_populates="historique_status")
 
 class Historique_metter_value(TimestampMixin, table=True):
     id : Optional[int] = Field(default=None, primary_key=True)
-    real_connector_id: Optional[int] = Field(foreign_key="connector.id")
+    real_connector_id: Optional[str] = Field(foreign_key="connector.id")
     valeur: float
     connector: Optional["Connector"] = Relationship(back_populates="historique_metter_value")
 
@@ -202,7 +205,7 @@ class Session(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     start_time: datetime
     end_time: datetime
-    connector_id: int = Field(foreign_key="connector.id")
+    connector_id: str = Field(foreign_key="connector.id")
     user_id: int = Field(foreign_key="user_table.id")
 
     connector: Optional["Connector"] = Relationship(back_populates="sessions")
