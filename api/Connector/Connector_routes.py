@@ -17,7 +17,7 @@ def create_conne(create_data : Connector_create, session : Session=Depends(get_s
 
 
 @router.put("/update/{id_connector}")
-def update_conne(id_connector:int,create_data : Connector_update, session : Session=Depends(get_session)):
+def update_conne(id_connector:str,create_data : Connector_update, session : Session=Depends(get_session)):
     try:
         return update_connector(id_connector,create_data, session)
     except Exception as e:
