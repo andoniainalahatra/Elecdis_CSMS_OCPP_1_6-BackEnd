@@ -46,3 +46,4 @@ propan
 aio_pika==9.4.3
 asyncio==3.4.3
 aiokafka
+fastapi-mail
