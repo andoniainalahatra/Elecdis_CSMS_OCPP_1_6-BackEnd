@@ -44,7 +44,7 @@ class Connector(TimestampMixin, table=True):
     # TY NO MAKANY @ LE HISTORIQUE
     id: Optional[str] = Field(primary_key=True)
     charge_point_id: Optional[str] = Field(default=None, foreign_key="chargepoint.id")
-    connector_type: str
+    connector_type: Optional[str]
 
     # NUMERO
     connector_id: Optional[int]
@@ -203,10 +203,12 @@ class TariffSnapshot(TimestampMixin, table=True):
 
 class Session(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    start_time: datetime
-    end_time: datetime
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
     connector_id: str = Field(foreign_key="connector.id")
     user_id: int = Field(foreign_key="user_table.id")
+    metter_start: Optional[float]
+    metter_stop: Optional[float]
 
     connector: Optional["Connector"] = Relationship(back_populates="sessions")
     user: Optional["User"] = Relationship(back_populates="sessions")

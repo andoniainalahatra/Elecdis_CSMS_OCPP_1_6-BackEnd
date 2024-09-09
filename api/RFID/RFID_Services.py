@@ -2,6 +2,7 @@ from typing import List
 
 from fastapi import UploadFile
 from api.RFID.RFID_models import Rfid_create
+from core.database import get_session
 from models.elecdis_model import Tag, User
 from sqlmodel import Session, select
 from core.utils import get_datas_from_csv, DEFAULT_USER_PASSWORD
@@ -9,7 +10,7 @@ from api.users.UserServices import get_user_from_email
 from api.auth.Auth_services import get_password_hash, verify_email_structure
 
 
-def create_rfid(rfid: Rfid_create, session: Session, can_commit : bool = True):
+def create_rfid_service(rfid: Rfid_create, session: Session, can_commit: bool = True):
     try:
         # check user
         user = session.exec(select(User).where(User.id == rfid.user_id)).first()
@@ -29,7 +30,7 @@ def create_rfid(rfid: Rfid_create, session: Session, can_commit : bool = True):
         return {"message": f"Error: {str(e)}"}
 
 
-def update_rfid(rfid: Rfid_create, session: Session):
+def update_rfid_service(rfid: Rfid_create, session: Session):
     try:
         # check user
         user = session.exec(select(User).where(User.id == rfid.user_id)).first()
@@ -51,7 +52,7 @@ def update_rfid(rfid: Rfid_create, session: Session):
         return {"message": f"Error: {str(e)}"}
 
 
-def delete_rfid(id: int, session: Session):
+def delete_rfid_service(id: int, session: Session):
     try:
         tag: Tag = session.exec(select(Tag).where(Tag.id == id)).first()
         if tag is None:
@@ -69,7 +70,7 @@ async def upload_rfid_from_csv(file: UploadFile, session: Session, create_non_ex
     logs = []
     try:
         # Start a transaction
-         with session.begin():
+        with session.begin():
             # 1 - Read the file
             datas = await get_datas_from_csv(file)
             line = 1
@@ -116,3 +117,15 @@ async def upload_rfid_from_csv(file: UploadFile, session: Session, create_non_ex
     except Exception as e:
         session.rollback()
         return {"message": f"Error: {str(e)}"}
+
+
+def get_by_tag(session: Session, tag: str):
+    return session.exec(select(Tag).where(Tag.tag == tag)).first()
+
+def get_user_by_tag(session : Session, tag : str):
+    tag = get_by_tag(session,tag)
+    if tag is None:
+        return None
+    return tag.user
+
+
