@@ -70,6 +70,16 @@ def create_historique_metervalues(historique:Historique_metervalues_create,sessi
         session.refresh(histo)
     except Exception as e:
         return {"messageError":f"{str(e)}"}
+
+
+def get_connector_by_id(id_connector:str,session:Session):
+    try:
+        connector = session.exec(select(Connector).where(Connector.id == id_connector)).first()
+        if connector is None:
+            raise HTTPException(status_code=404, detail=f"Connector with id {id_connector} not found")
+        return connector
+    except Exception as e:
+        return {"messageError":f"{str(e)}"}
     
 
 

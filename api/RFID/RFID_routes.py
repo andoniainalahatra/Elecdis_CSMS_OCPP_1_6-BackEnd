@@ -4,26 +4,28 @@ import io
 from fastapi import APIRouter, Depends, UploadFile, File
 from sqlalchemy.orm import Session
 
+import api
 from api.RFID.RFID_models import Rfid_update, Rfid_create
 from core.database import get_session
 from core.utils import get_datas_from_csv
-from api.RFID.RFID_Services import create_rfid, update_rfid, delete_rfid, upload_rfid_from_csv
+from api.RFID.RFID_Services import update_rfid_service, delete_rfid_service, upload_rfid_from_csv, create_rfid_service
+
 router = APIRouter()
 
 
 @router.put("/")
 def update_rfid(update_data: Rfid_update, session: Session = Depends(get_session)):
-    update_rfid(update_data, session)
+    update_rfid_service(update_data, session)
 
 
 @router.post("/")
 def create_rfid(create_data: Rfid_create, session: Session = Depends(get_session)):
-    create_rfid(create_data, session)
+    create_rfid_service(rfid=create_data, session=session)
 
 
 @router.delete("/{id}")
 def delete_rfid(id: int, session: Session = Depends(get_session)):
-    delete_rfid(id, session)
+    delete_rfid_service(id, session)
 
 
 @router.post("/import_from_csv")

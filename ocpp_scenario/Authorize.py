@@ -8,25 +8,35 @@ from ocpp.v16 import call_result
 from propan import apply_types
 import logging
 logging.basicConfig(level=logging.INFO)
+from core.database import get_session
+from sqlmodel import Session
+from api.RFID.RFID_Services import get_by_tag
+from datetime import datetime, timedelta
+
 
 class Authorize:
     @apply_types
     @on(Action.Authorize)
     async def on_authorize(self,charge_point_instance,idTag,**kwargs):
-        Idtaglist=["idtag_1","idtag_2","idtag_3"]
-        logging.info(f"idTag:{idTag}")
-        if idTag in Idtaglist: 
+        # check if tag exists in the database
+        session : Session = next(get_session())
+        tag= get_by_tag(session,idTag)
+        expiry_date = datetime.now() + timedelta(days=2)
+        if tag is None:
+
             return {
                 "idTagInfo":{
-                        'status': 'Accepted',
-                        'expiryDate': '2025-12-31T23:59:59Z'  
-                    }
+                    'status': 'Blocked',
+                    'expiryDate': str(expiry_date)
+                }
             }
         else:
             return {
                 "idTagInfo":{
-                        'status': 'Blocked',
-                        'expiryDate': '2025-12-31T23:59:59Z'  
-                    }
+                    'status': 'Accepted',
+                    'expiryDate': str(expiry_date)
+                }
             }
-        
+
+
+
