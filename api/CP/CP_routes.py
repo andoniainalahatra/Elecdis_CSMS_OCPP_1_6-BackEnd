@@ -63,7 +63,7 @@ def detail_status_charge(status:str,session : Session=Depends(get_session)):
         raise e
 @router.post("/import_from_csv_cp")
 async def import_from_csv_cp(file: UploadFile = File(...), session : Session = Depends(get_session)):
-    message = await upload_charge_points_from_csv(file, session, create_non_existing_users=True)
+    message = await upload_charge_points_from_csv(file, session)
     if message.get("logs"):
         print(message["logs"])
     else :

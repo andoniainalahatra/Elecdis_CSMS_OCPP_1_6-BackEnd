@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import date, datetime
 class Cp_create(BaseModel):
     id:str
     serial_number:str
@@ -14,6 +15,7 @@ class Cp_update(BaseModel):
     charge_point_model:str
     charge_point_vendors:str
     status:str
+    time:datetime
 
 
    
