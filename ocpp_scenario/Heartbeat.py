@@ -11,6 +11,9 @@ from api.CP.CP_services import update_cp
 from api.Connector.Connector_models import Connector_update
 from api.Connector.Connector_services import update_connector
 from models.elecdis_model import StatusEnum
+from api.Connector.Connector_services import create_connector,update_connector
+from api.Connector.Connector_models import Connector_create,Connector_update
+from api.CP.CP_services import read_detail_cp
 from core.database import get_session
 logging.basicConfig(level=logging.INFO)
 
@@ -48,6 +51,10 @@ class Heartbeat:
                     session=next(get_session())
                     cpp=Cp_update(charge_point_vendors="null",charge_point_model="null",status=StatusEnum.unavailable,time=current_time)
                     update_cp(charge_point_id,cpp,session)
+                    conne=Connector_update(valeur=0,status=StatusEnum.unavailable,time=last_heartbeat)
+                    result=read_detail_cp(charge_point_id,session)
+                    for row in result:
+                        update_connector(row['id_connecteur'],conne,session)
                     logging.info(f"Pas de heartbeat reçu du Point de Charge {charge_point_id} dans les 10 dernières secondes. Dernier reçu à {last_heartbeat}")
                     del self.last_heartbeat_times[charge_point_id]
                     
