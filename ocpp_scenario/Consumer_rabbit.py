@@ -46,6 +46,7 @@ class ConsumerRabbit:
                             start=StartTransaction()
                             stop=StopTransaction
                             meter=MeterValue()
+                            await heart.start()
                             cp = ChargePoint(charge_point_id, None, boot, heart, statusnotif,start,stop,authorize,meter)
                             response = await cp.process_message(action, pay)
                             rabbit=Connexion_rabbit()

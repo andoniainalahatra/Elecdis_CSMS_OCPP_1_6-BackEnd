@@ -24,11 +24,17 @@ def create_cp(cp: Cp_create, session : Session):
 def update_cp(id_cp:str,cp:Cp_update,session : Session):
     
     charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
+    if cp.charge_point_model =="null":
+        cp.charge_point_model=charge.charge_point_model
+    if cp.charge_point_vendors =="null":
+        cp.charge_point_vendors=charge.charge_point_vendors
     if charge is None:
         raise Exception(f"CP  with id {id_cp} does not exist.")
+    
     charge.status=cp.status
     charge.charge_point_model=cp.charge_point_model
     charge.charge_point_vendors=cp.charge_point_vendors
+    charge.updated_at=cp.time
     session.add(charge)
     session.commit()
     session.refresh(charge)
@@ -224,8 +230,11 @@ async def upload_charge_points_from_csv(file: UploadFile, session: Session):
                     adresse=data["adresse"],
                     charge_point_model=data.get("charge_point_model"),
                     charge_point_vendors=data.get("charge_point_vendors"),
+                    status=StatusEnum.unavailable,
+                    serial_number=data["serial_number"],
                     longitude=data.get("longitude"),
-                    latitude=data.get("latitude")
+                    latitude=data.get("latitude"),
+                    state=ACTIVE_STATE
                       
                 )
                 session.add(new_charge_point)
