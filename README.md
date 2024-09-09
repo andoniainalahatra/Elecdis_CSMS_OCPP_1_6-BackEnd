@@ -25,11 +25,3 @@ docker compose build
 docker-compose up -d
 
 ```
-
-3. Configuration .env
-
-```sh
-DATABASE_URL=postgresql://elecdis:elecdis-ocpp@{votre_host}:5432/elecdis
-
-
-```
