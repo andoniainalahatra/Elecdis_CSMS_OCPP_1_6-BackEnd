@@ -23,7 +23,7 @@ class BootNotification:
     async def on_bootnotification(self,charge_point_instance,chargePointVendor, chargePointModel, **kwargs):
         charge_point_id=charge_point_instance.id
         logging.info(f"CPV:{chargePointVendor}+{chargePointModel}+{charge_point_id}")
-        charge=Cp_update(charge_point_model=chargePointModel,charge_point_vendors=chargePointVendor,status=StatusEnum.available)
+        charge=Cp_update(charge_point_model=chargePointModel,charge_point_vendors=chargePointVendor,status=StatusEnum.available,time=datetime.now())
         update_cp(charge_point_id,charge,next(get_session()))
         
         return {
