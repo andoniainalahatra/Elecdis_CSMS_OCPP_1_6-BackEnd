@@ -4,6 +4,7 @@ from datetime import date, datetime
 from enum import Enum
 from sqlalchemy import Index
 from sqlalchemy import PrimaryKeyConstraint, Index, UniqueConstraint
+from core.utils import *
 
 
 class StatusEnum(str, Enum):
@@ -150,6 +151,7 @@ class User(TimestampMixin, table=True):
     id_user_group: Optional[int] = Field(foreign_key="usergroup.id")
     id_subscription: Optional[int] = Field(default=None, foreign_key="subscription.id")
     id_partner: Optional[int] = Field(default=None, foreign_key="partner.id")
+    state : Optional[int]=DEFAULT_STATE
 
     user_group: Optional["UserGroup"] = Relationship(back_populates="users")
     sessions: List["Session"] = Relationship(back_populates="user")
@@ -223,6 +225,7 @@ class Tag(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: Optional[int] = Field(default=None, foreign_key="user_table.id")
     tag: str
+    state : Optional[int]=DEFAULT_STATE
 
     user: Optional["User"] = Relationship(back_populates="tags")
 
