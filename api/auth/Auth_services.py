@@ -192,7 +192,7 @@ async def forgot_password_method(email: str, session: Session):
     return "recovery code sent successfully"
 
 
-def check_code_reset(email: str, code: str, session: Session=Depends(get_session)):
+def check_code_reset(email: str, code: str, session: Session = Depends(get_session)):
     user = session.exec(select(User).where(User.email == email)).first()
     if user is None:
         raise EmailException(f"User with email {email} does not exist")
@@ -211,11 +211,20 @@ def check_code_reset(email: str, code: str, session: Session=Depends(get_session
         raise Exception(f"Code {code} has expired")
     return user
 
-def change_password(reset_password:ResetPassword, session: Session=Depends(get_session)):
-    user:User= session.exec(select(User).where(User.email==reset_password.email)).first()
-    if reset_password.new_password != reset_password.confirm_password:
-        raise Exception("Password and confirm password do not match")
-    user.password = get_password_hash(reset_password.new_password)
-    session.add(user)
-    session.commit()
+
+def change_password(reset_password: ResetPassword, session: Session = Depends(get_session)):
+    try:
+            code_reset = session.exec(
+                select(User_reset_code).where(User_reset_code.code == reset_password.code)).first()
+            code_reset.is_used = True
+            session.add(code_reset)
+            user: User = session.exec(select(User).where(User.email == reset_password.email)).first()
+            if reset_password.new_password != reset_password.confirm_password:
+                raise Exception("Password and confirm password do not match")
+            user.password = get_password_hash(reset_password.new_password)
+            session.add(user)
+            session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
     return "Password reset successfully"

@@ -103,7 +103,7 @@ async def upload_rfid_from_csv(file: UploadFile, session: Session, create_non_ex
                         line += 1
                         continue
                 # create the rfid
-                create_rfid(Rfid_create(rfid=data["rfid"], user_id=user.id), session, can_commit=False)
+                create_rfid_service(Rfid_create(rfid=data["rfid"], user_id=user.id), session, can_commit=False)
                 line += 1
 
             if len(logs) > 0:
