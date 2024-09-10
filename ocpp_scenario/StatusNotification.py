@@ -28,7 +28,7 @@ class StatusNotification:
             logging.info(existing_connectors)
             if str(connectorId) not in existing_connectors :
                 logging.info(f"Status: ConnectorId={connectorId}, ErrorCode={errorCode}, Status={status}")
-                conne=Connector_create(id=str(connectorId),connector_type="evse",connector_id=0,charge_point_id=charge_point_id,status=status,valeur=0)
+                conne=Connector_create(id=f"{connectorId}{charge_point_id}",connector_type="evse",connector_id=0,charge_point_id=charge_point_id,status=status,valeur=0)
                 create_connector(conne,session)
             else:
                 conne=Connector_update(valeur=0,status=status,time=kwargs.get('timestamp'))
