@@ -39,13 +39,13 @@ class UserUpdate(BaseModel):
 
 def get_all_Admins(session: Session = Depends(get_session)):
     query = select(User).join(UserGroup).where(
-        UserGroup.name.in_(['admin', 'Admin', 'Administrator', 'administrator', 'ADMIN']))
+        UserGroup.name.in_(['admin', 'Admin', 'Administrator', 'administrator', 'ADMIN']), User.state!=DELETED_STATE)
     clients = session.exec(query).all()
     return get_list_user_data(clients)
 
 
 def get_all_clients(session: Session = Depends(get_session)):
-    query = select(User).join(UserGroup).where(UserGroup.name not in get_all_Admins(session))
+    query = select(User).join(UserGroup).where(UserGroup.name not in get_all_Admins(session), User.state!=DELETED_STATE)
     clients = session.exec(query).all()
     return get_list_user_data(clients)
 
@@ -107,12 +107,27 @@ def get_user_tags_list(user, session):
     return tags
 
 def get_user_from_email(email: str, session: Session):
-    user = session.exec(select(User).where(User.email == email)).first()
+    user = session.exec(select(User).where(User.email == email, User.state!=DELETED_STATE)).first()
     return user
 
 def get_user_by_id(id: int, session: Session):
     user = session.exec(select(User).where(User.id == id, User.state!=DELETED_STATE)).first()
     return user
+
+def delete_user(id: int, session: Session):
+    user = get_user_by_id(id, session)
+    if user is None:
+        raise Exception(f"User with id {id} does not exist.")
+    user.state = DELETED_STATE
+    session.add(user)
+    session.commit()
+    return {"message": "User deleted successfully"}
+
+# nouveaux clients
+def get_new_clients(session: Session = Depends(get_session), mois : int = 1, annee : int = 2021):
+    query = select(User).join(UserGroup).where(UserGroup.name not in get_all_Admins(session), User.state!=DELETED_STATE)
+    clients = session.exec(query).all()
+    return get_list_user_data(clients)
 
 # EXEMPLE PAGINATION
 
