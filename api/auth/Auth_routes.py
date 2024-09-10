@@ -51,7 +51,7 @@ async def forgot_password(email: str, tasks: BackgroundTasks):
 def reset_password(reset_request : ResetPassword, session : Session =Depends(get_session)):
     try:
         # check code
-        print(check_code_reset(email="priscafehiarisoa@icloud.com", code="043791",session=session))
+        check_code_reset(email=reset_request.email, code=reset_request.code,session=session)
         # save new password
         change_password(reset_request,session)
         return {
