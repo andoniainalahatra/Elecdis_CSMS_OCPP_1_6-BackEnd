@@ -7,8 +7,6 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 def create_connector(connector: Connector_create, session : Session):
-    if connector.status=="string" or None:
-            connector.status=StatusEnum.unavailable
     charge=session.exec(select(ChargePoint).where(ChargePoint.id == connector.charge_point_id)).first()
     if charge is None:
         raise Exception(f"ChargePoint with id {connector.charge_point_id} does not exist.")
@@ -18,16 +16,11 @@ def create_connector(connector: Connector_create, session : Session):
     session.commit()
     session.refresh(conne)
     return "insertion réussie"
-    
 
-def update_connector(id_connector:str,connector:Connector_update,session : Session):
+
+def update_connector(id_connector:str,connector:Connector_update,session : Session,can_commit=True):
     try:
         conne=session.exec(select(Connector).where(Connector.id == id_connector)).first()
-        valeur=0
-        if connector.valeur !=None:
-            valeur=connector.valeur
-        if connector.status == "string":
-            connector.status=conne.status
         if conne is None:
             raise Exception(f"CP  with id {id_connector} does not exist.")
         
@@ -36,14 +29,67 @@ def update_connector(id_connector:str,connector:Connector_update,session : Sessi
         
         histo = Historique_status_create(real_connector_id=id_connector, status=conne.status,time_last_status=conne.updated_at)
         create_historique_status(histo, session)  
-        session.commit()  
+        if can_commit:
+            session.commit()  
         logging.info(f"Historique inséré pour le connecteur ID: {id_connector} avec le statut: {conne.status}")
 
         #charge=session.exec(select(ChargePoint).where(ChargePoint.id == connector.charge_point_id)).first()
         #if charge is None:
             #raise Exception(f"CP  with id {connector.charge_point_id} does not exist.")
         conne.status=connector.status
-        conne.valeur=valeur
+        conne.updated_at=connector.time
+        conne.valeur=connector.valeur
+        session.add(conne)
+        session.commit()
+        session.refresh(conne) 
+        return "update réussie"
+    except Exception as e:
+        return {"messageError":f"{str(e)}"}
+
+def update_connector_status(id_connector:str,connector:Connector_update,session : Session,can_commit=True):
+    try:
+        conne=session.exec(select(Connector).where(Connector.id == id_connector)).first()
+        if conne is None:
+            raise Exception(f"CP  with id {id_connector} does not exist.")
+        
+        if conne.updated_at is None:
+            raise Exception("Connector 'updated_at' timestamp is missing and is required.")
+        
+        histo = Historique_status_create(real_connector_id=id_connector, status=conne.status,time_last_status=conne.updated_at)
+        create_historique_status(histo, session)  
+        if can_commit:
+            session.commit()  
+        logging.info(f"Historique inséré pour le connecteur ID: {id_connector} avec le statut: {conne.status}")
+
+        #charge=session.exec(select(ChargePoint).where(ChargePoint.id == connector.charge_point_id)).first()
+        #if charge is None:
+            #raise Exception(f"CP  with id {connector.charge_point_id} does not exist.")
+        conne.status=connector.status
+        conne.updated_at=connector.time
+        session.add(conne)
+        session.commit()
+        session.refresh(conne) 
+        return "update réussie"
+    except Exception as e:
+        return {"messageError":f"{str(e)}"}
+    
+
+def update_connector_valeur(id_connector:str,connector:Connector_update,session : Session,can_commit=True):
+    try:
+        conne=session.exec(select(Connector).where(Connector.id == id_connector)).first()
+        if conne is None:
+            raise Exception(f"CP  with id {id_connector} does not exist.")
+        
+        if conne.updated_at is None:
+            raise Exception("Connector 'updated_at' timestamp is missing and is required.")
+         
+        if can_commit:
+            session.commit()  
+
+        #charge=session.exec(select(ChargePoint).where(ChargePoint.id == connector.charge_point_id)).first()
+        #if charge is None:
+            #raise Exception(f"CP  with id {connector.charge_point_id} does not exist.")
+        conne.valeur=connector.valeur
         conne.updated_at=connector.time
         session.add(conne)
         session.commit()

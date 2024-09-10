@@ -10,8 +10,6 @@ ACTIVE_STATE=1
 
 def create_cp(cp: Cp_create, session : Session):
     try:
-        if cp.status=="string" or None:
-            cp.status=StatusEnum.unavailable
         
         charge : ChargePoint = ChargePoint(id=cp.id,serial_number=cp.serial_number, charge_point_model=cp.charge_point_model,charge_point_vendors=cp.charge_point_vendors,status=cp.status,adresse=cp.adresse,longitude=cp.longitude,latitude=cp.latitude,state=ACTIVE_STATE)
         session.add(charge)
@@ -24,16 +22,25 @@ def create_cp(cp: Cp_create, session : Session):
 def update_cp(id_cp:str,cp:Cp_update,session : Session):
     
     charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
-    if cp.charge_point_model =="null":
-        cp.charge_point_model=charge.charge_point_model
-    if cp.charge_point_vendors =="null":
-        cp.charge_point_vendors=charge.charge_point_vendors
     if charge is None:
         raise Exception(f"CP  with id {id_cp} does not exist.")
     
     charge.status=cp.status
     charge.charge_point_model=cp.charge_point_model
     charge.charge_point_vendors=cp.charge_point_vendors
+    charge.updated_at=cp.time
+    session.add(charge)
+    session.commit()
+    session.refresh(charge)
+    return "Modification réussie"
+
+def update_cp_status(id_cp:str,cp:Cp_update,session : Session):
+    
+    charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
+    if charge is None:
+        raise Exception(f"CP  with id {id_cp} does not exist.")
+    
+    charge.status=cp.status
     charge.updated_at=cp.time
     session.add(charge)
     session.commit()
@@ -131,6 +138,16 @@ def read_cp(session:Session):
         return {"data": charge, "has_next": has_next, "page": pagination.page, "limit": pagination.limit}
     except Exception as e:
         return {"messageError": f"Error: {str(e)}"}
+
+def somme_metervalue_connector(id_cp:str,session:Session):
+    try:
+        meter_values = session.exec(
+            select(Connector).where(Connector.charge_point_id== id_cp)
+        ).all()
+        total_value = sum(meter_value.valeur for meter_value in meter_values)  
+        return total_value 
+    except Exception as e:
+        return {"messageError": f" {str(e)}"}
     
 def count_status_cp(status:str,session:Session):
     try:

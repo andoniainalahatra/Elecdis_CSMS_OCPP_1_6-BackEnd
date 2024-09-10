@@ -9,6 +9,13 @@ from models.elecdis_model import User, Session, Historique_metter_value
 from api.transaction.Transaction_models import Session_create, Session_update, Session_list_model
 from api.RFID.RFID_Services import get_user_by_tag
 from api.Connector.Connector_services import get_connector_by_id
+from api.Connector.Connector_services import somme_metervalues,update_connector_valeur
+from api.Connector.Connector_models import Connector_update
+from api.CP.CP_services import update_cp,somme_metervalue_connector
+from api.CP.CP_models import Cp_update
+from models.elecdis_model import StatusEnum
+import logging
+logging.basicConfig(level=logging.INFO)
 
 
 def create_session_service(session: Session_db, session_data: Session_create):
@@ -47,6 +54,11 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
     session.flush()
     # save historic mettervalue
     create_mettervalue_history(session=session, session_data=session_model, can_commit=False)
+    session.flush()
+    somme=somme_metervalues(session_model.connector_id,session)
+    conne=Connector_update(valeur=somme,status=StatusEnum.available,time=datetime.now())
+    logging.info(f"connector_id:{somme}+{session_model.connector_id}")
+    update_connector_valeur(session_model.connector_id,conne,session,can_commit=False)
     session.commit()
     session.refresh(session_model)
     return session_model
