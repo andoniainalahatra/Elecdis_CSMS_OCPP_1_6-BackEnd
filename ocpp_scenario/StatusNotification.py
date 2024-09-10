@@ -8,7 +8,7 @@ from ocpp.v16 import call_result
 from propan import apply_types
 from ocpp_scenario.Connexion_rabbit import Connexion_rabbit
 import logging
-from api.Connector.Connector_services import create_connector,update_connector
+from api.Connector.Connector_services import create_connector,update_connector_status
 from api.Connector.Connector_models import Connector_create,Connector_update
 from api.CP.CP_services import read_detail_cp
 from core.database import get_session
@@ -26,13 +26,13 @@ class StatusNotification:
             existing_connectors = [row['id_connecteur'] for row in result]
             logging.info(f"ChargePoint ID: {charge_point_id}")
             logging.info(existing_connectors)
-            if str(connectorId) not in existing_connectors :
+            if f"{connectorId}{charge_point_id}" not in existing_connectors :
                 logging.info(f"Status: ConnectorId={connectorId}, ErrorCode={errorCode}, Status={status}")
-                conne=Connector_create(id=str(connectorId),connector_type="evse",connector_id=0,charge_point_id=charge_point_id,status=status,valeur=0)
+                conne=Connector_create(id=f"{connectorId}{charge_point_id}",connector_type="evse",connector_id=0,charge_point_id=charge_point_id,status=status,valeur=0)
                 create_connector(conne,session)
             else:
-                conne=Connector_update(valeur=0,status=status,time=kwargs.get('timestamp'))
-                update_connector(str(connectorId),conne,session)
+                conne=Connector_update(status=status,time=kwargs.get('timestamp'))
+                update_connector_status(f"{connectorId}{charge_point_id}",conne,session)
             session.commit()
         except Exception as e:
            session.rollback() 

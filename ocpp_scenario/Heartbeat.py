@@ -7,58 +7,83 @@ from ocpp.v16 import call_result
 from propan import apply_types
 import logging
 from api.CP.CP_models import Cp_update
-from api.CP.CP_services import update_cp
+from api.CP.CP_services import update_cp_status
 from api.Connector.Connector_models import Connector_update
-from api.Connector.Connector_services import update_connector
 from models.elecdis_model import StatusEnum
-from api.Connector.Connector_services import create_connector,update_connector
-from api.Connector.Connector_models import Connector_create,Connector_update
+from api.Connector.Connector_services import update_connector_status
+from api.Connector.Connector_models import Connector_update
 from api.CP.CP_services import read_detail_cp
 from core.database import get_session
 logging.basicConfig(level=logging.INFO)
 
-# class Heartbeat:
-#     @apply_types
-#     @on(Action.Heartbeat)
-#     async def on_heartbeat(self,charge_point_instance,**kwargs):
-#         charge_point_id = charge_point_instance.id
-#         return {
-#             "currentTime":datetime.now().isoformat()
-#         }
     
 import asyncio
 from datetime import datetime, timedelta
 
-class Heartbeat:
-    def __init__(self):
-        self.last_heartbeat_times = {}
-        self.check_interval = 10
+class Heartbeat(dict):
+    
     
     async def on_heartbeat(self, charge_point_instance, **kwargs):
         charge_point_id = charge_point_instance.id
-        self.last_heartbeat_times[charge_point_id] = datetime.now()
         return {
             "currentTime": datetime.now().isoformat()
         }
     
-    async def check_heartbeat_timeouts(self):
-        """Vérifie en continu les délais d'expiration des heartbeats toutes les 10 secondes."""
-        while True:
-            current_time = datetime.now()
-            for charge_point_id, last_heartbeat in list(self.last_heartbeat_times.items()):
-                logging.info(f"heartbeat reçu du Point de Charge {charge_point_id} dans les 10 dernières secondes. Dernier reçu à {last_heartbeat}")
-                if current_time - last_heartbeat > timedelta(seconds=self.check_interval):
-                    session=next(get_session())
-                    cpp=Cp_update(charge_point_vendors="null",charge_point_model="null",status=StatusEnum.unavailable,time=current_time)
-                    update_cp(charge_point_id,cpp,session)
-                    conne=Connector_update(valeur=0,status=StatusEnum.unavailable,time=last_heartbeat)
-                    result=read_detail_cp(charge_point_id,session)
-                    for row in result:
-                        update_connector(row['id_connecteur'],conne,session)
-                    logging.info(f"Pas de heartbeat reçu du Point de Charge {charge_point_id} dans les 10 dernières secondes. Dernier reçu à {last_heartbeat}")
-                    del self.last_heartbeat_times[charge_point_id]
-                    
-            await asyncio.sleep(self.check_interval)
+    # async def check_heartbeat_timeouts(self):
+  
+    #     while True:
+    #         current_time = datetime.now()
+    #         for charge_point_id, last_heartbeat in list(self.last_heartbeat_times.items()):
+    #             elapsed_time = (current_time - last_heartbeat).total_seconds()
+    #             timeout_duration_seconds = self.timeout_duration.total_seconds()
 
-    async def start(self):
-        asyncio.create_task(self.check_heartbeat_timeouts())
+    #             logging.debug(f"Current time: {current_time}, Last heartbeat: {last_heartbeat}, Elapsed time: {elapsed_time}")
+
+
+    #             # Check if elapsed time since last heartbeat is greater than the timeout duration
+    #             if elapsed_time > timeout_duration_seconds:
+    #                 with next(get_session()) as session:
+    #                     result = read_detail_cp(charge_point_id, session)
+    #                     charging_connector_exists = any(row['status_connector'] == StatusEnum.charging for row in result)
+
+    #                     if charging_connector_exists:
+    #                         logging.info(f"Charge Point {charge_point_id} is charging. Status update ignored.")
+    #                     else:
+    #                         cpp = Cp_update(status=StatusEnum.unavailable, time=current_time)
+    #                         update_cp_status(charge_point_id, cpp, session)
+
+    #                         conne = Connector_update(status=StatusEnum.unavailable, time=last_heartbeat)
+    #                         for row in result:
+    #                             update_connector_status(row['id_connecteur'], conne, session)
+
+    #                         logging.info(f"No heartbeat received from Charge Point {charge_point_id} in {elapsed_time}. Last received at {last_heartbeat}")
+    #                         del self.last_heartbeat_times[charge_point_id]
+
+    #         # Ensure the check runs at the correct inter
+    #         await asyncio.sleep(self.check_interval)
+ 
+    
+    # async def _heartbeat_timer(self, charge_point_id):
+    #     await asyncio.sleep(self.time_limit)
+    #     # Check the number of heartbeats received
+    #     current_count = self.heartbeat_counts.get(charge_point_id, 0)
+    #     if current_count< 2:
+    #         logging.info(f"Pas assez de Heartbeat {charge_point_id} +{self.heartbeat_counts.get(charge_point_id)}")
+    #         self.heartbeat_counts[charge_point_id] = 0
+    #     else:
+    #         logging.info(f"Heartbeat suffisant {charge_point_id}+{self.heartbeat_counts.get(charge_point_id)} ")
+    #         self.heartbeat_counts[charge_point_id] = 0
+
+    #     # Remove the timer
+    #     self.timers.pop(charge_point_id, None)
+    #     self.timers[charge_point_id] = asyncio.create_task(self._heartbeat_timer(charge_point_id))
+
+   
+
+
+
+
+
+
+
+        
