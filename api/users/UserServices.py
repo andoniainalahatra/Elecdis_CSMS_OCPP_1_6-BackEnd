@@ -106,6 +106,7 @@ def get_user_from_email(email: str, session: Session):
     return user
 
 
+# EXEMPLE PAGINATION
 
 # session = next(get_session())
 # pagination = Pagination(page=2, limit=2)

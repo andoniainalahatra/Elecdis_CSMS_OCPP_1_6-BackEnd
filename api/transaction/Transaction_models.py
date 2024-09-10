@@ -16,3 +16,15 @@ class Session_update(BaseModel):
     metter_stop: Optional[float]
     transaction_id: int
 
+class Session_list_model(BaseModel):
+    id: int
+    start_time: Optional[datetime]
+    end_time: Optional[datetime]
+    connector_id: str
+    user_id: int
+    user_name: str
+    metter_start: Optional[float]
+    metter_stop: Optional[float]
+    tag:str
+
+

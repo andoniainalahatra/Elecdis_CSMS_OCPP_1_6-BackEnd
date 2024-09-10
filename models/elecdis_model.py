@@ -203,12 +203,13 @@ class TariffSnapshot(TimestampMixin, table=True):
 
 class Session(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    start_time: Optional[datetime]
-    end_time: Optional[datetime]
+    start_time: Optional[datetime]=None
+    end_time: Optional[datetime]=None
     connector_id: str = Field(foreign_key="connector.id")
     user_id: int = Field(foreign_key="user_table.id")
     metter_start: Optional[float]
     metter_stop: Optional[float]
+    tag:Optional[str]
 
     connector: Optional["Connector"] = Relationship(back_populates="sessions")
     user: Optional["User"] = Relationship(back_populates="sessions")

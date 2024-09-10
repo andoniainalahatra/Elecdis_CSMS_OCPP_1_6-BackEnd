@@ -1,10 +1,12 @@
 from datetime import datetime
+from typing import List
 
-from sqlmodel import Session as Session_db, select
+from sqlmodel import Session as Session_db, select,func
 
 from core.database import get_session
+from models.Pagination import Pagination
 from models.elecdis_model import User, Session, Historique_metter_value
-from api.transaction.Transaction_models import Session_create, Session_update
+from api.transaction.Transaction_models import Session_create, Session_update, Session_list_model
 from api.RFID.RFID_Services import get_user_by_tag
 from api.Connector.Connector_services import get_connector_by_id
 
@@ -26,6 +28,7 @@ def create_session_service(session: Session_db, session_data: Session_create):
         user_id=user.id,
         metter_start=session_data.metter_start,
         metter_stop=session_data.metter_stop,
+        tag=session_data.user_tag
     )
     session.add(session_model)
     session.commit()
@@ -57,3 +60,50 @@ def create_mettervalue_history(session:Session_db, session_data:Session, can_com
     session.add(history)
     if can_commit:
         session.commit()
+
+
+def get_current_sessions(session:Session_db, pagination:Pagination):
+    sessions: List[Session] = session.exec(
+        select(Session).
+        where(Session.end_time == None).
+        order_by(Session.id).
+        offset(pagination.offset).
+        limit(pagination.limit)).all()
+    return get_list_session_data(sessions)
+
+def get_session_by_id(session:Session_db, id:int):
+    session_model: Session = session.exec(select(Session).where(Session.id == id)).first()
+    return session_model
+
+def count_current_session(session:Session_db):
+    count = session.exec(select(func.count(Session.id)).where(Session.end_time == None)).one()
+    return count
+
+def total_session_de_charges(session:Session_db):
+    total = session.exec(select(func.count(Session.id))).one()
+    return total
+
+def get_all_session(session:Session_db, pagination:Pagination):
+    sessions: List[Session] = session.exec(
+        select(Session).
+        order_by(Session.id).
+        offset(pagination.offset).
+        limit(pagination.limit)).all()
+    return get_list_session_data(sessions)
+
+def get_session_data(session:Session):
+    data=Session_list_model(
+        id=session.id,
+        start_time=session.start_time,
+        end_time=session.end_time,
+        connector_id=session.connector_id,
+        user_id=session.user_id,
+        user_name=session.user.first_name + " "+session.user.last_name,
+        metter_start=session.metter_start,
+        metter_stop=session.metter_stop,
+        tag=session.tag
+    )
+    return data
+
+def get_list_session_data (sessions:List[Session]):
+    return [get_session_data(session) for session in sessions]
