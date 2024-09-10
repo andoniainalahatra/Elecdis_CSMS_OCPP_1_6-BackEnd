@@ -33,6 +33,7 @@ class StatusNotification:
             else:
                 conne=Connector_update(status=status,time=kwargs.get('timestamp'))
                 update_connector_status(f"{connectorId}{charge_point_id}",conne,session)
+
             session.commit()
         except Exception as e:
            session.rollback() 

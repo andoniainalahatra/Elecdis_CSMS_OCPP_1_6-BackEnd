@@ -9,7 +9,7 @@ from passlib.context import CryptContext
 from api.auth.Auth_models import ResetPassword
 from api.exeptions.EmailException import EmailException
 from api.exeptions.SubscriptionException import SubscriptionException
-from api.users.UserServices import get_user_data, UserUpdate
+from api.users.UserServices import *
 from core.database import get_session
 from models.elecdis_model import *
 from sqlmodel import select, and_
@@ -32,19 +32,15 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(session: Session, email: str):
-    return session.exec(select(User).where(User.email == email)).first()
-
-
 def check_email_if_exists(email: str, session: Session):
-    user = session.exec(select(User).where(User.email == email)).first()
+    user = get_user_from_email(email=email, session=session)
     if user is None:
         return False
     return True
 
 
 def authenticate_user(session: Session, email: str, password: str):
-    user = get_user(session, email)
+    user = get_user_from_email(email=email, session=session)
     if not user:
         print("no user found")
         return False
@@ -75,7 +71,7 @@ async def get_current_user(session: Session = Depends(get_session), token: str =
             raise credetionals_exception
     except JWTError:
         raise credetionals_exception
-    user = get_user(session, email)
+    user = get_user_from_email(email=email, session=session)
     if user is None:
         raise credetionals_exception
     return get_user_data(user)
@@ -155,7 +151,9 @@ def update_user(user_to_update: UserUpdate, session: Session):
     validate_user(user_to_update, session, check_email=False)
     user_to_update = trim_data(user_to_update)
     check_empty_fields(user_to_update)
-    user: User = session.exec(select(User).where(User.id == user_to_update.id)).first()
+    user: User = session.exec(select(User).where(User.id == user_to_update.id, User.state!=DELETED_STATE)).first()
+    if user is None:
+        raise Exception(f"User with id {user_to_update.id} does not exist")
     user.first_name = user_to_update.first_name
     user.last_name = user_to_update.last_name
     user.email = user_to_update.email
@@ -164,6 +162,7 @@ def update_user(user_to_update: UserUpdate, session: Session):
     user.id_subscription = user_to_update.id_subscription
     user.id_partner = user_to_update.id_partner
     user.password = get_password_hash(user_to_update.password)
+    user.updated_at=datetime.utcnow()
     session.add(user)
     session.commit()
     return user
@@ -175,7 +174,7 @@ def generate_recovery_code(length=6):
 
 
 async def forgot_password_method(email: str, session: Session):
-    user = get_user(session, email)
+    user = get_user_from_email(email=email, session=session)
     if user is None:
         raise EmailException(f"User with email {email} does not exist")
     recovery_code = generate_recovery_code()
@@ -192,8 +191,8 @@ async def forgot_password_method(email: str, session: Session):
     return "recovery code sent successfully"
 
 
-def check_code_reset(email: str, code: str, session: Session=Depends(get_session)):
-    user = session.exec(select(User).where(User.email == email)).first()
+def check_code_reset(email: str, code: str, session: Session = Depends(get_session)):
+    user = get_user_from_email(email=email, session=session)
     if user is None:
         raise EmailException(f"User with email {email} does not exist")
     user_code = session.exec(
@@ -211,11 +210,20 @@ def check_code_reset(email: str, code: str, session: Session=Depends(get_session
         raise Exception(f"Code {code} has expired")
     return user
 
-def change_password(reset_password:ResetPassword, session: Session=Depends(get_session)):
-    user:User= session.exec(select(User).where(User.email==reset_password.email)).first()
-    if reset_password.new_password != reset_password.confirm_password:
-        raise Exception("Password and confirm password do not match")
-    user.password = get_password_hash(reset_password.new_password)
-    session.add(user)
-    session.commit()
+
+def change_password(reset_password: ResetPassword, session: Session = Depends(get_session)):
+    try:
+            code_reset = session.exec(
+                select(User_reset_code).where(User_reset_code.code == reset_password.code)).first()
+            code_reset.is_used = True
+            session.add(code_reset)
+            user: User = get_user_from_email(email=reset_password.email, session=session)
+            if reset_password.new_password != reset_password.confirm_password:
+                raise Exception("Password and confirm password do not match")
+            user.password = get_password_hash(reset_password.new_password)
+            session.add(user)
+            session.commit()
+    except Exception as e:
+        session.rollback()
+        raise e
     return "Password reset successfully"

@@ -5,11 +5,13 @@ from fastapi import Depends
 
 # from api.auth.UserAuthentification import validate_user, get_password_hash
 from core.database import get_session
+from core.utils import *
 from models.Pagination import Pagination
 from models.elecdis_model import User, Tag, Transaction, UserGroup, Session as SessionModel
 from sqlmodel import Session, create_engine, select, text
 from api.exeptions.EmailException import EmailException
 from pydantic import BaseModel
+
 
 
 class UserData(BaseModel):
@@ -37,13 +39,13 @@ class UserUpdate(BaseModel):
 
 def get_all_Admins(session: Session = Depends(get_session)):
     query = select(User).join(UserGroup).where(
-        UserGroup.name.in_(['admin', 'Admin', 'Administrator', 'administrator', 'ADMIN']))
+        UserGroup.name.in_(['admin', 'Admin', 'Administrator', 'administrator', 'ADMIN']), User.state!=DELETED_STATE)
     clients = session.exec(query).all()
     return get_list_user_data(clients)
 
 
 def get_all_clients(session: Session = Depends(get_session)):
-    query = select(User).join(UserGroup).where(UserGroup.name not in get_all_Admins(session))
+    query = select(User).join(UserGroup).where(UserGroup.name not in get_all_Admins(session), User.state!=DELETED_STATE)
     clients = session.exec(query).all()
     return get_list_user_data(clients)
 
@@ -98,14 +100,36 @@ def get_user_profile(user: UserData, session: Session):
 
 
 def get_user_tags_list(user, session):
-    tags: List[Tag] = session.exec(select(Tag).where(Tag.user_id == user.id)).all()
+    tags: List[Tag] = session.exec(select(Tag).where(
+        Tag.user_id == user.id,
+        Tag.state != DELETED_STATE
+    )).all()
     return tags
 
 def get_user_from_email(email: str, session: Session):
-    user = session.exec(select(User).where(User.email == email)).first()
+    user = session.exec(select(User).where(User.email == email, User.state!=DELETED_STATE)).first()
     return user
 
+def get_user_by_id(id: int, session: Session):
+    user = session.exec(select(User).where(User.id == id, User.state!=DELETED_STATE)).first()
+    return user
 
+def delete_user(id: int, session: Session):
+    user = get_user_by_id(id, session)
+    if user is None:
+        raise Exception(f"User with id {id} does not exist.")
+    user.state = DELETED_STATE
+    session.add(user)
+    session.commit()
+    return {"message": "User deleted successfully"}
+
+# nouveaux clients
+def get_new_clients(session: Session = Depends(get_session), mois : int = 1, annee : int = 2021):
+    query = select(User).join(UserGroup).where(UserGroup.name not in get_all_Admins(session), User.state!=DELETED_STATE)
+    clients = session.exec(query).all()
+    return get_list_user_data(clients)
+
+# EXEMPLE PAGINATION
 
 # session = next(get_session())
 # pagination = Pagination(page=2, limit=2)

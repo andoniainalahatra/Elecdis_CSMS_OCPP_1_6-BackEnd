@@ -2,8 +2,8 @@ from fastapi import UploadFile
 import io
 import csv
 
-DELETED_STATE = 0
-DEFAULT_STATE = 1
+DELETED_STATE = 1
+DEFAULT_STATE = 0
 DEFAULT_USER_PASSWORD = "password"
 
 async def get_datas_from_csv(file: UploadFile):
