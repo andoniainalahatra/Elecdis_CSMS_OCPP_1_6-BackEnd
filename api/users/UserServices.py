@@ -123,6 +123,12 @@ def delete_user(id: int, session: Session):
     session.commit()
     return {"message": "User deleted successfully"}
 
+# nouveaux clients
+def get_new_clients(session: Session = Depends(get_session), mois : int = 1, annee : int = 2021):
+    query = select(User).join(UserGroup).where(UserGroup.name not in get_all_Admins(session), User.state!=DELETED_STATE)
+    clients = session.exec(query).all()
+    return get_list_user_data(clients)
+
 # EXEMPLE PAGINATION
 
 # session = next(get_session())
