@@ -5,11 +5,13 @@ from fastapi import Depends
 
 # from api.auth.UserAuthentification import validate_user, get_password_hash
 from core.database import get_session
+from core.utils import *
 from models.Pagination import Pagination
 from models.elecdis_model import User, Tag, Transaction, UserGroup, Session as SessionModel
 from sqlmodel import Session, create_engine, select, text
 from api.exeptions.EmailException import EmailException
 from pydantic import BaseModel
+
 
 
 class UserData(BaseModel):
@@ -98,13 +100,19 @@ def get_user_profile(user: UserData, session: Session):
 
 
 def get_user_tags_list(user, session):
-    tags: List[Tag] = session.exec(select(Tag).where(Tag.user_id == user.id)).all()
+    tags: List[Tag] = session.exec(select(Tag).where(
+        Tag.user_id == user.id,
+        Tag.state != DELETED_STATE
+    )).all()
     return tags
 
 def get_user_from_email(email: str, session: Session):
     user = session.exec(select(User).where(User.email == email)).first()
     return user
 
+def get_user_by_id(id: int, session: Session):
+    user = session.exec(select(User).where(User.id == id, User.state!=DELETED_STATE)).first()
+    return user
 
 # EXEMPLE PAGINATION
 
