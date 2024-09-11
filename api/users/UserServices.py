@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 import bcrypt
@@ -37,17 +38,56 @@ class UserUpdate(BaseModel):
     id_partner: Optional[int]
 
 
-def get_all_Admins(session: Session = Depends(get_session)):
+def get_all_Admins(session: Session = Depends(get_session), need_all_datas_user:bool=False):
     query = select(User).join(UserGroup).where(
-        UserGroup.name.in_(['admin', 'Admin', 'Administrator', 'administrator', 'ADMIN']), User.state!=DELETED_STATE)
+        UserGroup.name==ADMIN_NAME, User.state!=DELETED_STATE)
     clients = session.exec(query).all()
+    if need_all_datas_user:
+        return clients
     return get_list_user_data(clients)
 
+
+def create_default_admin_usergroup(session: Session):
+    # Check if the "Admin" user group exists
+    admin_group = session.exec(select(UserGroup).where(UserGroup.name == ADMIN_NAME)).first()
+
+    # If it does not exist, create it
+    if not admin_group:
+        admin_group = UserGroup(name=ADMIN_NAME)
+        session.add(admin_group)
+        session.commit()
+        print(f"Default {ADMIN_NAME} user group created.")
+    else:
+        print(f"{ADMIN_NAME} user group already exists.")
 
 def get_all_clients(session: Session = Depends(get_session)):
-    query = select(User).join(UserGroup).where(UserGroup.name not in get_all_Admins(session), User.state!=DELETED_STATE)
+    query = select(User).join(UserGroup).where(UserGroup.name != ADMIN_NAME, User.state!=DELETED_STATE)
     clients = session.exec(query).all()
     return get_list_user_data(clients)
+
+def get_new_clients_lists(session: Session = Depends(get_session), mois : Optional[int] = None, annee : int = datetime.utcnow().year):
+    query = select(User).join(UserGroup).where(
+        UserGroup.name!=ADMIN_NAME,
+        User.state != DELETED_STATE,
+
+    )
+    if mois != None:
+        print("mois =>", mois)
+        query = query.where(text(f"EXTRACT(MONTH FROM user_table.created_at) = {mois}"))
+    if annee != None:
+        print("annee", annee)
+        query = query.where(text(f"EXTRACT(YEAR FROM user_table.created_at) = {annee}"))
+    else:
+        print("else")
+        query = query.where(text(f"EXTRACT(YEAR FROM user_table.created_at) = {datetime.utcnow().year}"))
+    print(query)
+    clients = session.exec(query).all()
+    return get_list_user_data(clients)
+
+def count_new_clients(session: Session = Depends(get_session), mois : Optional[int] = None, annee : int = datetime.utcnow().year):
+    length = len(get_new_clients_lists(session, mois, annee))
+    return length
+
 
 
 def get_all_users(session: Session = Depends(get_session)):
@@ -124,10 +164,7 @@ def delete_user(id: int, session: Session):
     return {"message": "User deleted successfully"}
 
 # nouveaux clients
-def get_new_clients(session: Session = Depends(get_session), mois : int = 1, annee : int = 2021):
-    query = select(User).join(UserGroup).where(UserGroup.name not in get_all_Admins(session), User.state!=DELETED_STATE)
-    clients = session.exec(query).all()
-    return get_list_user_data(clients)
+
 
 # EXEMPLE PAGINATION
 

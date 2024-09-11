@@ -65,3 +65,19 @@ def get_user_by_id(id: int, session: Session = Depends(get_session)):
             raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="User not found")
         return user
 
+@router.get("/new_clients/")
+def get_new_clients(month: Optional[int]=None, year: Optional[int]=None, session: Session = Depends(get_session)):
+    clients = get_new_clients_lists(session=session,mois=month, annee=year)
+    if year is None:
+        year = datetime.utcnow().year
+    return {"clients ":clients,
+            "month": month,
+            "year": year}
+
+@router.get("/new_clients/count")
+def count_all_new_clients_based_on_month_and_years(month: Optional[int]=None, year: Optional[int]=None, session: Session = Depends(get_session)):
+    if year is None:
+        year = datetime.utcnow().year
+    return {"count ":count_new_clients(mois=month, annee=year, session=session),
+            "month": month,
+            "year": year}

@@ -5,6 +5,7 @@ import csv
 DELETED_STATE = 1
 DEFAULT_STATE = 0
 DEFAULT_USER_PASSWORD = "password"
+ADMIN_NAME='Admin'
 
 async def get_datas_from_csv(file: UploadFile):
     json_data = []
