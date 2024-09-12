@@ -75,13 +75,14 @@ def create_mettervalue_history(session:Session_db, session_data:Session, can_com
 
 
 def get_current_sessions(session:Session_db, pagination:Pagination):
+    pagination.total_items=count_current_session(session)
     sessions: List[Session] = session.exec(
         select(Session).
         where(Session.end_time == None).
         order_by(Session.id).
         offset(pagination.offset).
         limit(pagination.limit)).all()
-    return get_list_session_data(sessions)
+    return {"data":get_list_session_data(sessions), "pagination":pagination.dict()}
 
 def get_session_by_id(session:Session_db, id:int):
     session_model: Session = session.exec(select(Session).where(Session.id == id)).first()
@@ -96,12 +97,14 @@ def total_session_de_charges(session:Session_db):
     return total
 
 def get_all_session(session:Session_db, pagination:Pagination):
+    pagination.total_items=total_session_de_charges(session)
+    pagination.total_items = session.exec(select(func.count(Session.id))).one()
     sessions: List[Session] = session.exec(
         select(Session).
         order_by(Session.id).
         offset(pagination.offset).
         limit(pagination.limit)).all()
-    return get_list_session_data(sessions)
+    return {"data":get_list_session_data(sessions),"pagination":pagination.dict()}
 
 def get_session_data(session:Session):
     data=Session_list_model(
