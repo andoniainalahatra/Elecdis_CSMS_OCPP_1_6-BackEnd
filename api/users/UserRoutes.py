@@ -11,40 +11,69 @@ from typing import Annotated
 router = APIRouter()
 
 @router.get("/client")
-def get_list_client(_: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))]):
-    return get_all_clients(next(get_session()))
+def get_list_client(
+        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
+        session: Session=Depends(get_session),
+        page_number: Optional[int] = 1,
+        number_items: Optional[int] = 50
+):
+    return get_all_clients(session=session,page=page_number, number_items=number_items)
 
 @router.get("/")
-def get_all(token: str = Depends(oauth_2_scheme), session: Session=Depends(get_session)):
-    return get_all_users(next(get_session()))
+def get_all(
+        token: str = Depends(oauth_2_scheme),
+        session: Session=Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    return get_all_users(session=session, page=page, number_items=number_items)
 
 @router.get("/Admin")
-def get_admin():
-    return get_all_Admins(next(get_session()))
+def get_admin(
+        session: Session=Depends(get_session),
+        page_number: Optional[int] = 1,
+        number_items: Optional[int] = 50
+):
+    return get_all_Admins(session=session,page=page_number, item_numbers=number_items)
 
 @router.get("/current")
-async def get_current_user_api(token: str = Depends(oauth_2_scheme), session: Session=Depends(get_session)):
+async def get_current_user_api(token: str = Depends(oauth_2_scheme), session: Session=Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
     return get_user_data( await (get_current_user(session, token)))
 
-@router.get("/sessions")
-async def get_user_sessions(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session)):
-    return get_user_sessions_list(await get_current_user(session, token), session)
+@router.get("/current/sessions")
+async def get_All_current_user_sessions(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    return get_user_sessions_list(user=await get_current_user(session, token), session=session, page=page, number_items=number_items)
 
 
-@router.get("/transactions")
-async def get_user_transactions(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session)):
-    return get_user_transactions_list(await get_current_user(session, token), session)
+@router.get("/current/transactions")
+async def get_All_curren_user_transactions(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    return get_user_transactions_list(user=await get_current_user(session, token), session=session , page=page, number_items=number_items)
 
+@router.get("/sessions/{user_id}")
+async def get_all_user_sessions_by_user_id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    return get_user_sessions_list(user=await get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
 
-@router.get("/tags")
-def get_user_tags(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session), user: UserData = Depends(get_current_user)):
-    tags = get_user_tags_list(user, session)
+@router.get("/transactions/{user_id}")
+async def get_all_user_transactions_by_user_id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    return get_user_transactions_list(user=await get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
+
+@router.get("/current/tags")
+def get_all_current_user_tags(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session), user: UserData = Depends(get_current_user), page:Optional[int]=1, number_items:Optional[int]=50):
+    tags = get_user_tags_list(user=user, session=session, page=page, number_items=number_items)
     return tags
 
-@router.get("/profile")
-def get_user_profile(
+@router.get("/tags/{user_id}")
+async def get_all_user_tags_by_user_id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    tags = get_user_tags_list(user=await get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
+    return tags
+@router.get("/current/profile")
+def get_current_user_profile(
         token: str = Depends(oauth_2_scheme),
         session: Session = Depends(get_session) , user: UserData = Depends(get_current_user)):
+    transactions = get_user_transactions_list(user, session)
+    sessions = get_user_sessions_list(user, session)
+    return {"user": user, "transactions": transactions, "sessions": sessions}
+
+@router.get("/profile/{user_id}")
+def get_user_profile_by_id(user_id: int, session: Session = Depends(get_session)):
+    user = get_user_by_id(user_id, session)
     transactions = get_user_transactions_list(user, session)
     sessions = get_user_sessions_list(user, session)
     return {"user": user, "transactions": transactions, "sessions": sessions}

@@ -5,8 +5,9 @@ from sqlmodel import cast, Integer
 from fastapi import UploadFile
 from api.RFID.RFID_models import *
 from core.database import get_session
+from models.Pagination import Pagination
 from models.elecdis_model import Tag, User
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 from core.utils import *
 from api.users.UserServices import get_user_from_email, get_user_by_id
 from api.auth.Auth_services import get_password_hash, verify_email_structure
@@ -73,11 +74,17 @@ def delete_rfid_service(id: int, session: Session):
     except Exception as e:
         return {"message": f"Error: {str(e)}"}
 
-def get_all_rfid(session: Session):
-    return get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) != DELETED_STATE)).all())
+def get_all_rfid(session: Session, page: int = 1, number_items: int = 50):
+    pagination = Pagination(page=page, limit=number_items)
+    total_items = session.exec(select(func.count(Tag.id)).where(cast(Tag.state, Integer) != DELETED_STATE)).one()
+    pagination.total_items = total_items
+    return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) != DELETED_STATE)).all()), "pagination": pagination.dict()}
 
-def get_deleted_rfid(session: Session):
-    return get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer)== DELETED_STATE)).all())
+def get_deleted_rfid(session: Session, page: int = 1, number_items: int = 50):
+    pagination = Pagination(page=page, limit=number_items)
+    total_items = session.exec(select(func.count(Tag.id)).where(cast(Tag.state, Integer) == DELETED_STATE)).one()
+    pagination.total_items = total_items
+    return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) == DELETED_STATE)).all()), "pagination": pagination.dict()}
 
 def get_rfid_data(data : Tag):
     return Rfid_data(
