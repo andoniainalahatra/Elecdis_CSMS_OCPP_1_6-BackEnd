@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from api.mail.email_model import Email_model
 from api.transaction.Transaction_models import Session_create, Session_update
 from api.transaction.Transaction_service import create_session_service, update_session_service_on_stopTransaction
+from api.users.UserServices import create_default_admin_usergroup
 from core.database import init_db, get_session
 # router
 from api.routes.routes import routers
@@ -16,6 +17,8 @@ app = FastAPI()
 @app.on_event("startup")
 def on_startup():
     init_db()
+    session = next(get_session())
+    create_default_admin_usergroup(session)
 
 # ROUTES
 app.include_router(routers)
