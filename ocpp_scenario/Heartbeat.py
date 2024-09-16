@@ -20,12 +20,12 @@ logging.basicConfig(level=logging.INFO)
 import asyncio
 from datetime import datetime, timedelta
 
-class Heartbeat(dict):
+class Heartbeat():
     
     
     async def on_heartbeat(self, charge_point_instance, **kwargs):
         charge_point_id = charge_point_instance.id
-        return {
+        return{
             "currentTime": datetime.now().isoformat()
         }
     
