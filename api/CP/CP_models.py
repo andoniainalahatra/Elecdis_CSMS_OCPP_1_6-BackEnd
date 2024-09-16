@@ -2,6 +2,9 @@ from pydantic import BaseModel
 from datetime import date, datetime
 from models.elecdis_model import StatusEnum
 from typing import Optional
+import pytz
+from core.config import *
+timezone = pytz.timezone(TIME_ZONE)
 class Cp_create(BaseModel):
     id:str
     serial_number:Optional[str]=None
@@ -17,7 +20,7 @@ class Cp_update(BaseModel):
     charge_point_model:Optional[str]=None
     charge_point_vendors:Optional[str]=None
     status:Optional[str]=None
-    time:Optional[datetime]=datetime.now
+    time:Optional[datetime]=datetime.now(timezone)
 
 
    

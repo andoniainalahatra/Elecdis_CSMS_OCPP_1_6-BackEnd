@@ -13,8 +13,9 @@ from models.elecdis_model import StatusEnum
 from core.database import get_session
 from sqlalchemy.orm import Session
 from fastapi import Depends
-
-logging.basicConfig(level=logging.INFO)
+import pytz
+from core.config import *
+timezone = pytz.timezone(TIME_ZONE)
 
 class BootNotification:
         
@@ -27,7 +28,7 @@ class BootNotification:
         update_cp(charge_point_id,charge,next(get_session()))
         
         return {
-            "currentTime":datetime.now().isoformat(),
+            "currentTime":datetime.now(timezone).isoformat(),
             "interval":10,
             "status":RegistrationStatus.accepted
         }
