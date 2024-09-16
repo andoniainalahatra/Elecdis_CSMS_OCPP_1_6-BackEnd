@@ -15,18 +15,20 @@ from api.Connector.Connector_models import Connector_update
 from api.CP.CP_services import read_detail_cp
 from core.database import get_session
 logging.basicConfig(level=logging.INFO)
-
+import pytz
+from core.config import *
+timezone = pytz.timezone(TIME_ZONE)
     
 import asyncio
 from datetime import datetime, timedelta
 
-class Heartbeat():
+class Heartbeat:
     
     
     async def on_heartbeat(self, charge_point_instance, **kwargs):
         charge_point_id = charge_point_instance.id
         return{
-            "currentTime": datetime.now().isoformat()
+            "currentTime": datetime.now(timezone).isoformat()
         }
     
     # async def check_heartbeat_timeouts(self):
