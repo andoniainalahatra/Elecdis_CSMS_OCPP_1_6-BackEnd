@@ -3,15 +3,15 @@ from models.elecdis_model import ChargePoint,StatusEnum,Connector
 from sqlmodel import Session, select,func
 from models.Pagination import Pagination
 from fastapi import UploadFile
-from core.utils import get_datas_from_csv
+from core.utils import *
 
 
 import logging
 from fastapi import HTTPException
 logging.basicConfig(level=logging.INFO)
 
-DELETED_STATE=0
-ACTIVE_STATE=1
+DELETED_STATE=DELETED_STATE
+ACTIVE_STATE=DEFAULT_STATE
 
 def create_cp(cp: Cp_create, session : Session):
     try:
@@ -63,9 +63,9 @@ def delete_cp(id_cp:str,session : Session):
     session.refresh(charge)
     return "delete réussie"
     
-def read_charge_point_connector(session:Session):
+def read_charge_point_connector(session:Session, page: int = 1, number_items: int = 50):
     try:
-        pagination = Pagination(page=1, limit=1)
+        pagination = Pagination(page=page, limit=number_items)
         chargepoints = session.exec(
             select(
                 ChargePoint.id.label("id_charge_point"),
@@ -82,6 +82,9 @@ def read_charge_point_connector(session:Session):
             .offset(pagination.offset)  
             .limit(pagination.limit)
         ).all()
+
+       
+        
         formatted_result = [
             {
                 "id_charge_point": cp.id_charge_point,
@@ -96,9 +99,8 @@ def read_charge_point_connector(session:Session):
             for cp in chargepoints
         ]
 
-        has_next = len(formatted_result) == pagination.limit
-
-        return {"data": formatted_result, "has_next": has_next, "page": pagination.page, "limit": pagination.limit}
+        pagination.total_items = len(formatted_result)
+        return {"data": formatted_result, "pagination":pagination.dict()}
     except Exception as e:
         return {"messageError": f"Error: {str(e)}"}
     
@@ -134,13 +136,15 @@ def read_detail_cp(id_cp:str,session:Session):
     return formatted_result
 
 
-def read_cp(session:Session):
+def read_cp(session:Session, page: int = 1, number_items: int = 50):
     try:
-        pagination = Pagination(page=3, limit=1)
+        pagination = Pagination(page=page, limit=number_items)
         charge=session.exec(select(ChargePoint).where(ChargePoint.state==ACTIVE_STATE).offset(pagination.offset).limit(pagination.limit)).all()
+        numer_itemQuery=session.exec(select(func.count(ChargePoint.id)).where(ChargePoint.state==ACTIVE_STATE)).one()
+        pagination.total_items=numer_itemQuery
         has_next = len(charge) == pagination.limit
 
-        return {"data": charge, "has_next": has_next, "page": pagination.page, "limit": pagination.limit}
+        return {"data": charge, "pagination":pagination.dict()}
     except Exception as e:
         return {"messageError": f"Error: {str(e)}"}
 
