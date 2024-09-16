@@ -5,6 +5,7 @@ from api.RFID.RFID_routes import router as rfid_routes
 from api.CP.CP_routes import router as CP_routes
 from api.Connector.Connector_routes import router as Connector_routes
 from api.transaction.Transaction_routes import router as transaction_routes
+from api.subscription.Subscription_routes import router as subscription_routes
 routers = APIRouter()
 
 routers.include_router(user_routes, prefix="/users", tags=["Users"])
@@ -13,3 +14,4 @@ routers.include_router(auth_routes, prefix="/auth", tags=["Authentifications"])
 routers.include_router(CP_routes, prefix="/cp", tags=["CP"])
 routers.include_router(Connector_routes, prefix="/connector", tags=["Connector"])
 routers.include_router(transaction_routes, prefix="/transaction", tags=["Transaction"])
+routers.include_router(subscription_routes, prefix="/subscription", tags=["subscriptions"])
