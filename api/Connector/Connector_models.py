@@ -2,6 +2,9 @@ from pydantic import BaseModel
 from datetime import date, datetime
 from models.elecdis_model import StatusEnum
 from typing import Optional
+import pytz
+from core.config import *
+timezone = pytz.timezone(TIME_ZONE)
 class Connector_create(BaseModel):
     id:str
     connector_type:str
@@ -13,7 +16,7 @@ class Connector_create(BaseModel):
 class Connector_update(BaseModel):
     valeur:Optional[float]=0
     status:Optional[str]=None
-    time:Optional[datetime]=datetime.now
+    time:Optional[datetime]=datetime.now(timezone)
 
 class Historique_status_create(BaseModel):
     real_connector_id:str
