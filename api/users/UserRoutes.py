@@ -34,8 +34,8 @@ def get_admin(
     return get_all_Admins(session=session,page=page_number, item_numbers=number_items)
 
 @router.get("/current")
-async def get_current_user_api(token: str = Depends(oauth_2_scheme), session: Session=Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
-    return get_user_data( await (get_current_user(session, token)))
+async def get_current_user_api(token: str = Depends(oauth_2_scheme), session: Session=Depends(get_session)):
+    return  await (get_current_user(session, token))
 
 @router.get("/current/sessions")
 async def get_All_current_user_sessions(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):

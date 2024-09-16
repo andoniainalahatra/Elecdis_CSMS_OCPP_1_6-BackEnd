@@ -1,7 +1,12 @@
 from pydantic import BaseModel
+
+from api.users.UserServices import UserData
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user:UserData
 
 
 class UserRegister(BaseModel):
