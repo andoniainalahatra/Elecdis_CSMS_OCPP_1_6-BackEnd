@@ -13,7 +13,7 @@ class Connector_create(BaseModel):
 class Connector_update(BaseModel):
     valeur:Optional[float]=0
     status:Optional[str]=None
-    time:datetime
+    time:Optional[datetime]=datetime.now
 
 class Historique_status_create(BaseModel):
     real_connector_id:str

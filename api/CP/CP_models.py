@@ -17,7 +17,7 @@ class Cp_update(BaseModel):
     charge_point_model:Optional[str]=None
     charge_point_vendors:Optional[str]=None
     status:Optional[str]=None
-    time:datetime
+    time:Optional[datetime]=datetime.now
 
 
    
