@@ -2,6 +2,7 @@ from datetime import datetime
 
 from fastapi import FastAPI
 
+from api.auth.Auth_services import generate_keys
 from api.mail.email_model import Email_model
 from api.transaction.Transaction_models import Session_create, Session_update
 from api.transaction.Transaction_service import create_session_service, update_session_service_on_stopTransaction
@@ -19,8 +20,20 @@ def on_startup():
     init_db()
     session = next(get_session())
     create_default_admin_usergroup(session)
+    # generate_keys()
 
 # ROUTES
+
+
+from pathlib import Path
+
+# Get the current file's path
+current_dir = Path(__file__).resolve()
+
+# Navigate up to the project root (adjust the number of parents as needed)
+root_dir = current_dir.parents[1]  # Adjust '1' depending on how many levels up the root is
+
+print("root ",root_dir)
 app.include_router(routers)
 
 # print("update session ")

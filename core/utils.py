@@ -1,3 +1,5 @@
+import os
+
 from fastapi import UploadFile
 import io
 import csv
@@ -6,6 +8,8 @@ DELETED_STATE = 1
 DEFAULT_STATE = 0
 DEFAULT_USER_PASSWORD = "password"
 ADMIN_NAME='Admin'
+
+FILE_PATH=os.path.dirname(os.path.abspath(__file__))
 
 async def get_datas_from_csv(file: UploadFile):
     json_data = []

@@ -1,3 +1,4 @@
+import os
 import random
 from datetime import timedelta
 import re
@@ -14,14 +15,53 @@ from core.database import get_session
 from models.elecdis_model import *
 from sqlmodel import select, and_
 from api.mail.email_model import Email_model, send_email
+from ecdsa import (SigningKey, NIST256p ,VerifyingKey)
+from cryptography.hazmat.primitives import serialization
 
-SECRET_KEY = "d343fdce6f2ca054a42914a06a0e519e842e2f6412d723acd016fd43715b1a59"
-ALGORITHM = "HS256"
+PRIVATE_KEY = SigningKey.generate(curve=NIST256p)
+PUBLIC_KEY = PRIVATE_KEY.get_verifying_key()
+
+private_key_pem = PRIVATE_KEY.to_pem()
+public_key_pem = PUBLIC_KEY.to_pem()
+
+ALGORITHM = "ES256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 PASSWORD_LENGTH = 6
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth_2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+def load_keys(private_key_path, public_key_path):
+    with open(private_key_path, 'rb') as key_file:
+        private_key_pem = key_file.read()
+    private_key = SigningKey.from_pem(private_key_pem)
+
+    with open(public_key_path, 'rb') as key_file:
+        public_key_pem = key_file.read()
+    public_key = VerifyingKey.from_pem(public_key_pem)
+
+    return private_key, public_key
+def generate_keys():
+    # create a file to store the private key
+    main_file_directory = os.path.dirname(os.path.abspath(__file__))
+    filePath=f'{main_file_directory}/private'
+    if not os.path.exists(f'{filePath}/private.pem') and not os.path.exists(f'{filePath}/public.pem'):
+        os.makedirs(filePath, exist_ok=True)
+        private_key_path=f"{filePath}/private.pem"
+        public_key_path=f"{filePath}/public.pem"
+
+        # Générer la clé privée
+        private_key = SigningKey.generate(curve=NIST256p)
+        private_key_pem = private_key.to_pem()
+        # Enregistrer la clé privée dans un fichier
+        with open(private_key_path, 'wb') as f:
+            f.write(private_key_pem)
+
+        # Générer la clé publique à partir de la clé privée
+        public_key = private_key.get_verifying_key()
+        public_key_pem = public_key.to_pem()
+        # Enregistrer la clé publique dans un fichier
+        with open(public_key_path, 'wb') as f:
+            f.write(public_key_pem)
 
 
 def verify_password(password, hashed_password):
@@ -55,27 +95,34 @@ def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode,
+        private_key_pem,
+        algorithm=ALGORITHM
+    )
     return encoded_jwt
 
 
 async def get_current_user(session: Session = Depends(get_session), token: str = Depends(oauth_2_scheme)):
-    credetionals_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                           detail="Could not validate credentials",
-                                           headers={"WWW-Authenticate": "Bearer"})
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Use the public key to verify the JWT
+        payload = jwt.decode(token, public_key_pem, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
-            raise credetionals_exception
+            raise credentials_exception
     except JWTError:
-        raise credetionals_exception
+        raise credentials_exception
+
     user = get_user_from_email(email=email, session=session)
     if user is None:
-        raise credetionals_exception
+        raise credentials_exception
     return get_user_data(user)
-
 
 def verify_email_structure(email: str):
     pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
@@ -144,7 +191,8 @@ def login(username: str, password: str, session: Session):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
     user_data = get_user_data(user)
     access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token, "token_type": "bearer","user":user_data}
 
 
 def update_user(user_to_update: UserUpdate, session: Session):
