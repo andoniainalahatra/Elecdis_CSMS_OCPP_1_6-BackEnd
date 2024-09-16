@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import logging
 from aio_pika import ExchangeType, Message as AioPikaMessage,IncomingMessage
 import asyncio
+from core.config import *
 
 
 class Connexion_rabbit:
@@ -14,7 +15,7 @@ class Connexion_rabbit:
 
     async def get_rabbit_connection(self):    
         try:
-            self.connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq/")
+            self.connection = await aio_pika.connect_robust(CONNECTION_RABBIT)
             logging.info("Connection to RabbitMQ established")
             return self.connection
         except Exception as e:
