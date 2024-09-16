@@ -5,6 +5,11 @@ from models.Pagination import Pagination
 from fastapi import UploadFile
 from core.utils import get_datas_from_csv
 
+
+import logging
+from fastapi import HTTPException
+logging.basicConfig(level=logging.INFO)
+
 DELETED_STATE=0
 ACTIVE_STATE=1
 
@@ -266,6 +271,15 @@ async def upload_charge_points_from_csv(file: UploadFile, session: Session):
     except Exception as e:
         session.rollback()
         return {"message": f"Error: {str(e)}"}
+    
+
+
+
+        
+
+        
+        
+
 
     
 

@@ -1,9 +1,13 @@
 from fastapi import APIRouter, Depends,status,HTTPException,UploadFile,File
 from sqlalchemy.orm import Session
-from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp
+from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp,send_message_via_websocket
 from api.CP.CP_models import Cp_create,Cp_update
 
 from core.database import get_session
+import aio_pika
+from aio_pika import ExchangeType, Message as AioPikaMessage,IncomingMessage
+import json
+from fastapi import HTTPException
 
 router = APIRouter()
 
@@ -69,3 +73,32 @@ async def import_from_csv_cp(file: UploadFile = File(...), session : Session = D
     else :
         print(message)
     return {}
+
+@router.post("/send/{charge_point_id}/{transaction_id}")
+async def send_message(charge_point_id: str, transaction_id: int):
+    # Détails du message à envoyer
+    message = [2, "15455", "RemoteStopTransaction", {"transactionId": transaction_id}]
+    response_json = {
+        "charge_point_id": charge_point_id,
+        "payload": message
+    }
+    
+    try:
+        connection = await aio_pika.connect_robust("amqp://guest:guest@172.21.0.3/")
+        async with connection:
+            channel = await connection.channel()
+            exchange = await channel.get_exchange("micro_ocpp") 
+            await exchange.publish(
+                AioPikaMessage(body=json.dumps(response_json).encode()),
+                routing_key="02"
+            )
+
+
+        return {"status": "Message sent", "response": message}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send message: {e}")
+
+    
+
+    
