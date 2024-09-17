@@ -4,10 +4,10 @@ from fastapi import UploadFile
 import io
 import csv
 
-DELETED_STATE = 1
-DEFAULT_STATE = 0
+DELETED_STATE = 0
+DEFAULT_STATE = 1
 DEFAULT_USER_PASSWORD = "password"
-ADMIN_NAME='Admin'
+ADMIN_NAME='admin'
 
 FILE_PATH=os.path.dirname(os.path.abspath(__file__))
 

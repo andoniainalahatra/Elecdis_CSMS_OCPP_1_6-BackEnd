@@ -11,6 +11,7 @@ from api.auth.Auth_models import ResetPassword
 from api.exeptions.EmailException import EmailException
 from api.exeptions.SubscriptionException import SubscriptionException
 from api.users.UserServices import *
+from api.users.UserServices import get_user_from_email
 from core.database import get_session
 from models.elecdis_model import *
 from sqlmodel import select, and_

@@ -36,7 +36,7 @@ async def import_from_csv(file: UploadFile = File(...), session : Session = Depe
         print(message["logs"])
     else :
         print(message)
-    return {}
+    return {"message": "RFID imported successfully"}
 
 @router.get("/all")
 def get_all_rfid_list(session: Session = Depends(get_session)):
