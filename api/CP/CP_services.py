@@ -4,6 +4,8 @@ from sqlmodel import Session, select,func
 from models.Pagination import Pagination
 from fastapi import UploadFile
 from core.utils import *
+from datetime import date, datetime,timedelta
+
 
 
 import logging
@@ -33,7 +35,7 @@ def update_cp(id_cp:str,cp:Cp_update,session : Session):
     charge.status=cp.status
     charge.charge_point_model=cp.charge_point_model
     charge.charge_point_vendors=cp.charge_point_vendors
-    charge.updated_at=cp.time
+    charge.updated_at=cp.time+ timedelta(hours=3)
     session.add(charge)
     session.commit()
     session.refresh(charge)
