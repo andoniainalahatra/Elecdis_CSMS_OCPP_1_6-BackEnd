@@ -70,10 +70,10 @@ def detail_status_charge(status:str,session : Session=Depends(get_session)):
 async def import_from_csv_cp(file: UploadFile = File(...), session : Session = Depends(get_session)):
     message = await upload_charge_points_from_csv(file, session)
     if message.get("logs"):
-        print(message["logs"])
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(message["logs"]))
     else :
         print(message)
-    return {}
+    return {"message": "Charge points imported successfully"}
 
 @router.post("/send/{charge_point_id}/{transaction_id}")
 async def send_message(charge_point_id: str, transaction_id: int):

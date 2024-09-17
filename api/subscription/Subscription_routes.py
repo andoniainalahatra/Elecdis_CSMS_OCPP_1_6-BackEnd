@@ -11,7 +11,9 @@ from api.subscription.Subscription_models import *
 router = APIRouter()
 
 @router.post("/subscriptions/", response_model=Subscription)
-def create_subscription(subscription: Subscription, session: Session = Depends(get_session)):
+def create_subscription(
+
+        subscription: Subscription, session: Session = Depends(get_session)):
     session.add(subscription)
     session.commit()
     session.refresh(subscription)
