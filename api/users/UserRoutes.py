@@ -1,6 +1,6 @@
 import asyncio
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, File
 
 from api.users.UserServices import *
 from api.auth.Auth_services import oauth_2_scheme, get_current_user
@@ -110,3 +110,12 @@ def count_all_new_clients_based_on_month_and_years(month: Optional[int]=None, ye
     return {"count ":count_new_clients(mois=month, annee=year, session=session),
             "month": month,
             "year": year}
+
+@router.post("/import_users_from_csv")
+async def import_users_from_csv(file: UploadFile = File(...), session: Session = Depends(get_session)):
+    message = await upload_user_from_csv(file, session)
+    if message.get("logs"):
+        print(message["logs"])
+    else:
+        print(message)
+    return {"message": "Users imported successfully"}

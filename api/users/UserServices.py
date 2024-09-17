@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import List, Optional
 
@@ -8,10 +9,11 @@ from fastapi import Depends
 from core.database import get_session
 from core.utils import *
 from models.Pagination import Pagination
-from models.elecdis_model import User, Tag, Transaction, UserGroup, Session as SessionModel
+from models.elecdis_model import User, Tag, Transaction, UserGroup, Session as SessionModel, Subscription, Partner
 from sqlmodel import Session, select, text, func
 from api.exeptions.EmailException import EmailException
 from pydantic import BaseModel
+from passlib.context import CryptContext
 
 
 class UserData(BaseModel):
@@ -35,6 +37,12 @@ class UserUpdate(BaseModel):
     password: str
     id_subscription: Optional[int]
     id_partner: Optional[int]
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def verify_email_structure(email: str):
+    pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    if not re.match(pattern, email):
+        raise EmailException(f"Email {email} is not valid")
 
 
 def get_all_Admins(session: Session = Depends(get_session), page: Optional[int] = 1, item_numbers: Optional[int] = 50,
@@ -209,8 +217,74 @@ def delete_user(id: int, session: Session):
     session.commit()
     return {"message": "User deleted successfully"}
 
-# nouveaux clients
+async def upload_user_from_csv(file : UploadFile, session : Session):
+    logs = []
+    try:
+        with session.begin():
+            datas = await get_datas_from_csv(file)
+            line=1
+            for data in datas:
+                try:
+                    verify_email_structure(data["email"].strip())
+                except Exception as e:
+                    logs.append({"message": str(e), "line": line})
+                    line += 1
+                    continue
+                #     check if user already exists
+                user= get_user_from_email(data["email"], session)
+                if user is not None:
+                    logs.append({"message": f"User with email {data['email']} already exists.", "line": line})
+                    line += 1
+                    continue
+                else:
+                    # check user group
+                    user_group = session.exec(select(UserGroup).where(UserGroup.name == data["user_group"].strip().lower())).first()
+                    if user_group is None:
+                        user_group = UserGroup(name=data["user_group"].strip().lower())
+                        session.add(user_group)
+                        session.flush()
 
+                    # check subscription
+                    subscription = session.exec(select(Subscription).where(Subscription.type_subscription == data["subscription"].strip().lower())).first()
+                    if subscription is None:
+                            subscription = Subscription(type_subscription=data["subscription"].strip().lower())
+                            session.add(subscription)
+                            session.flush()
+                    # check partner
+                    partner:Optional[Partner] = None
+                    if "partner" in data:
+                        try:
+                            partner = session.exec(select(Partner).where(Partner.name == data["partner"].strip().lower())).first()
+                            if partner is None and data["partner"].strip()!="":
+                                    partner = Partner(name=data["partner"].strip().lower())
+
+                                    session.add(partner)
+                                    session.flush()
+                        except Exception as e:
+                            print({"message": f"Partner {data['partner']} does not exist.", "line": line})
+                    pid,sid,uid=partner.id if partner else None,subscription.id if subscription else None,user_group.id if user_group else None
+                    user = User(
+                        first_name=data["first_name"],
+                        last_name=data["last_name"],
+                        email=data["email"],
+                        phone=data["phone"],
+                        password=pwd_context.hash(data["password"]),
+                        id_user_group=uid,
+                        id_subscription=sid,
+                        id_partner=pid
+                    )
+                    print(user)
+                    session.add(user)
+                    line += 1
+            if len(logs)>0:
+                session.rollback()
+                return {"messages": "Some errors occured during the upload.", "logs": logs}
+            session.commit()
+            return {"message": "Users imported successfully"}
+
+    except Exception as e:
+        session.rollback()
+        return {"message": f"Error: {str(e)}"}
 
 # EXEMPLE PAGINATION
 
