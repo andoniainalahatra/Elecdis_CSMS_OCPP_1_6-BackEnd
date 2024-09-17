@@ -26,7 +26,7 @@ def update_charge(id_cp:str,create_data:Cp_update,session : Session=Depends(get_
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=str(e))
     
-@router.delete("/update/{id_cp}")
+@router.delete("/delete/{id_cp}")
 def delete_charge(id_cp:str,session : Session=Depends(get_session)):
     try:
         return delete_cp(id_cp,session)

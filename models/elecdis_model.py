@@ -1,6 +1,6 @@
 from sqlmodel import Field, SQLModel, Relationship
 from typing import List, Optional
-from datetime import date, datetime
+from datetime import date, datetime,timedelta
 from enum import Enum
 from sqlalchemy import Index
 from sqlalchemy import PrimaryKeyConstraint, Index, UniqueConstraint
@@ -17,10 +17,11 @@ class StatusEnum(str, Enum):
     charging="charging"
 
 
-
+def get_current_time_plus_3_hours() -> datetime:
+    return datetime.utcnow() + timedelta(hours=3)
 class TimestampMixin(SQLModel):
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=get_current_time_plus_3_hours, nullable=False)
+    updated_at: datetime = Field(default_factory=get_current_time_plus_3_hours, nullable=False)
 
 
 

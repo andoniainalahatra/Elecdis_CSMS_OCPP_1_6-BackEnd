@@ -2,7 +2,7 @@ from api.Connector.Connector_models import Connector_create,Connector_update,His
 from models.elecdis_model import ChargePoint,Connector,StatusEnum,Historique_status,Historique_metter_value
 from sqlmodel import Session, select
 from fastapi import HTTPException
-from datetime import date, datetime
+from datetime import timedelta
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -37,7 +37,7 @@ def update_connector(id_connector:str,connector:Connector_update,session : Sessi
         #if charge is None:
             #raise Exception(f"CP  with id {connector.charge_point_id} does not exist.")
         conne.status=connector.status
-        conne.updated_at=connector.time
+        conne.updated_at=connector.time+ timedelta(hours=3)
         conne.valeur=connector.valeur
         session.add(conne)
         session.commit()
