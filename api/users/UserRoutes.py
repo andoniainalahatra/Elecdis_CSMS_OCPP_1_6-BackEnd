@@ -22,11 +22,14 @@ def get_list_client(
 @router.get("/")
 def get_all(
         token: str = Depends(oauth_2_scheme),
+        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
         session: Session=Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
     return get_all_users(session=session, page=page, number_items=number_items)
 
 @router.get("/Admin")
 def get_admin(
+        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
+
         session: Session=Depends(get_session),
         page_number: Optional[int] = 1,
         number_items: Optional[int] = 50
@@ -95,7 +98,9 @@ def get_user_by_id(id: int, session: Session = Depends(get_session)):
         return user
 
 @router.get("/new_clients/")
-def get_new_clients(month: Optional[int]=None, year: Optional[int]=None, session: Session = Depends(get_session)):
+def get_new_clients(
+        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
+        month: Optional[int]=None, year: Optional[int]=None, session: Session = Depends(get_session)):
     clients = get_new_clients_lists(session=session,mois=month, annee=year)
     if year is None:
         year = datetime.utcnow().year
@@ -104,7 +109,9 @@ def get_new_clients(month: Optional[int]=None, year: Optional[int]=None, session
             "year": year}
 
 @router.get("/new_clients/count")
-def count_all_new_clients_based_on_month_and_years(month: Optional[int]=None, year: Optional[int]=None, session: Session = Depends(get_session)):
+def count_all_new_clients_based_on_month_and_years(
+        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
+        month: Optional[int]=None, year: Optional[int]=None, session: Session = Depends(get_session)):
     if year is None:
         year = datetime.utcnow().year
     return {"count ":count_new_clients(mois=month, annee=year, session=session),
@@ -115,7 +122,7 @@ def count_all_new_clients_based_on_month_and_years(month: Optional[int]=None, ye
 async def import_users_from_csv(file: UploadFile = File(...), session: Session = Depends(get_session)):
     message = await upload_user_from_csv(file, session)
     if message.get("logs"):
-        print(message["logs"])
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(message["logs"]))
     else:
         print(message)
     return {"message": "Users imported successfully"}
