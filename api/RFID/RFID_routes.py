@@ -52,4 +52,5 @@ def get_all_rfid_list(
 def get_deleted_rfid_list(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
         session: Session = Depends(get_session)):
+
     return get_deleted_rfid(session)

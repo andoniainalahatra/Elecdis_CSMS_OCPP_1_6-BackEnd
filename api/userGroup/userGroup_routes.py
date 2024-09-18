@@ -27,7 +27,7 @@ def read_usergroups(session: Session = Depends(get_session), page: Optional[int]
     count = session.exec(select(func.count(UserGroup.id))).one()
     pagination.total_items = count
 
-    return {"datas": usergroups, "pagination": pagination.dict()}
+    return {"data": usergroups, "pagination": pagination.dict()}
 
 # READ ONE (GET)
 @router.get("/usergroups/{usergroup_id}", response_model=UserGroup)

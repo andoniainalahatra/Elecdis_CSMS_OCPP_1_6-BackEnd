@@ -9,7 +9,12 @@ from api.auth.Auth_services import update_user
 from typing import Annotated
 
 router = APIRouter()
+@router.get("/search")
+def search_user(
+        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
+        search: str, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
 
+    return search_queries_users(search, session, page, number_items)
 @router.get("/client")
 def get_list_client(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
@@ -126,3 +131,4 @@ async def import_users_from_csv(file: UploadFile = File(...), session: Session =
     else:
         print(message)
     return {"message": "Users imported successfully"}
+
