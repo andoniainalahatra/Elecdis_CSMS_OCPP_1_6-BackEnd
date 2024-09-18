@@ -10,7 +10,7 @@ from core.database import get_session
 from core.utils import *
 from models.Pagination import Pagination
 from models.elecdis_model import User, Tag, Transaction, UserGroup, Session as SessionModel, Subscription, Partner
-from sqlmodel import Session, select, text, func
+from sqlmodel import Session, select, text, func, cast, String
 from api.exeptions.EmailException import EmailException
 from pydantic import BaseModel
 from passlib.context import CryptContext
@@ -58,7 +58,7 @@ def get_all_Admins(session: Session = Depends(get_session), page: Optional[int] 
     clients = session.exec(query).all()
     if need_all_datas_user:
         return clients
-    return {"datas": get_list_user_data(clients), "pagination": pagination.dict()}
+    return {"data": get_list_user_data(clients), "pagination": pagination.dict()}
 
 
 def create_default_admin_usergroup(session: Session):
@@ -87,7 +87,7 @@ def get_all_clients(session: Session = Depends(get_session), page: int = 1, numb
              where(UserGroup.name != ADMIN_NAME, User.state != DELETED_STATE))
     query = query.offset(pagination.offset).limit(pagination.limit)
     clients = session.exec(query).all()
-    return {"datas": get_list_user_data(clients), "pagination": pagination.dict()}
+    return {"data": get_list_user_data(clients), "pagination": pagination.dict()}
 
 
 def get_new_clients_lists(session: Session = Depends(get_session), mois: Optional[int] = None,
@@ -286,6 +286,44 @@ async def upload_user_from_csv(file : UploadFile, session : Session):
         session.rollback()
         return {"message": f"Error: {str(e)}"}
 
+
+def search_queries_users (queries:str, session: Session, page, number_items):
+    try:
+        pagination = Pagination(page=page, limit=number_items)
+        count_q = (select(func.count(User.id)).join(Subscription, User.id_subscription == Subscription.id).
+        join(UserGroup, User.id_user_group == UserGroup.id).
+        outerjoin(Partner, User.id_partner == Partner.id).
+        where(
+            func.concat(
+                cast(User.last_name, String), ' ',
+                cast(User.first_name, String), ' ',
+                cast(User.email, String), ' ',
+                cast(User.phone, String), ' ',
+                cast(UserGroup.name, String), ' ',
+                cast(Subscription.type_subscription, String)
+            ).like(f"%{queries}%")
+        ))
+        count = session.exec(count_q).one()
+        pagination.total_items = count
+        query = (select(User).join(Subscription, User.id_subscription == Subscription.id).
+        join(UserGroup, User.id_user_group == UserGroup.id).
+        outerjoin(Partner, User.id_partner == Partner.id).
+        where(
+            func.concat(
+                cast(User.last_name, String), ' ',
+                cast(User.first_name, String), ' ',
+                cast(User.email, String), ' ',
+                cast(User.phone, String), ' ',
+                cast(UserGroup.name, String), ' ',
+                cast(Subscription.type_subscription, String)
+            ).like(f"%{queries}%")
+        ))
+
+        users = session.exec(query).all()
+        return {"data":get_list_user_data(users), "pagination": pagination.dict()}
+    except Exception as e:
+            print(e)
+
 # EXEMPLE PAGINATION
 
 # session = next(get_session())
@@ -296,3 +334,5 @@ async def upload_user_from_csv(file : UploadFile, session : Session):
 # print(f"pagination {has_next}")
 # for i in users:
 #     print(i.id)
+
+

@@ -26,7 +26,7 @@ def read_subscriptions(session: Session = Depends(get_session), page:Optional[in
     subscriptions = session.exec(select(Subscription).offset(pagination.offset).limit(pagination.limit)).all()
     count = session.exec(select(func.count(Subscription.id))).one()
     pagination.total_items = count
-    return {"datas":subscriptions, "pagination":pagination.dict()}
+    return {"data":subscriptions, "pagination":pagination.dict()}
 
 # READ ONE (GET)
 @router.get("/subscriptions/{subscription_id}", response_model=Subscription)
