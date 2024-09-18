@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends,status,HTTPException,UploadFile,File
 from sqlalchemy.orm import Session
-from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp
+from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp,recherche_cp
 from api.CP.CP_models import Cp_create,Cp_update
 
 from core.database import get_session
@@ -51,6 +51,12 @@ def read_charge_detail(id:str,session : Session=Depends(get_session)):
 def read_charge(session : Session=Depends(get_session), page: int = 1, number_items: int = 50):
     try:
         return read_cp(session,page,number_items)
+    except Exception as e:
+        raise e
+@router.get("/recherche_cp")
+def recherche_charge(query : str,session : Session=Depends(get_session) ,page: int = 1, number_items: int = 50):
+    try:
+        return recherche_cp(session,query,page,number_items)
     except Exception as e:
         raise e
 @router.get("/count_status_cp/{status}")

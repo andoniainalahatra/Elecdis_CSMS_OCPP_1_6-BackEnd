@@ -4,6 +4,7 @@ from sqlmodel import Session, select,func
 from models.Pagination import Pagination
 from fastapi import UploadFile
 from core.utils import *
+from sqlalchemy import or_
 from datetime import date, datetime,timedelta
 
 
@@ -149,6 +150,55 @@ def read_cp(session:Session, page: int = 1, number_items: int = 50):
         return {"data": charge, "pagination":pagination.dict()}
     except Exception as e:
         return {"messageError": f"Error: {str(e)}"}
+    
+def escape_like_pattern(pattern: str) -> str:
+    escape_chars = ["%", "_"]
+    for char in escape_chars:
+        pattern = pattern.replace(char, "\\" + char)
+    return pattern
+def recherche_cp(session: Session, recherche: str, page: int = 1, number_items: int = 50):
+    try:
+        pagination = Pagination(page=page, limit=number_items)
+        recherche_pattern = f"%{escape_like_pattern(recherche)}%"
+        
+        charge_query = (
+            select(ChargePoint)
+            .filter(
+                ChargePoint.state == ACTIVE_STATE,
+                or_(
+                    ChargePoint.id.ilike(recherche_pattern),
+                    ChargePoint.charge_point_model.ilike(recherche_pattern),
+                    ChargePoint.charge_point_vendors.ilike(recherche_pattern),
+                    ChargePoint.adresse.ilike(recherche_pattern),
+                    ChargePoint.status.ilike(recherche_pattern)
+                )
+            )
+        )
+        print("Requête après filtrage :", charge_query,recherche)
+        if recherche.lower() == "available":
+            charge_query = (
+            select(ChargePoint)
+            .filter(
+                ChargePoint.state == ACTIVE_STATE,
+                or_(
+                    ChargePoint.id.ilike(recherche_pattern),
+                    ChargePoint.charge_point_model.ilike(recherche_pattern),
+                    ChargePoint.charge_point_vendors.ilike(recherche_pattern),
+                    ChargePoint.adresse.ilike(recherche_pattern),
+                    ChargePoint.status.ilike(recherche)
+                )
+            )
+        )
+        
+        charge = session.exec(
+            charge_query.offset(pagination.offset).limit(pagination.limit)
+        ).all()
+        has_next = len(charge)
+        pagination.total_items = has_next
+        return {"data": charge, "pagination": pagination.dict()}
+    except Exception as e:
+        return {"messageError": f"Error: {str(e)}"}
+
 
 def somme_metervalue_connector(id_cp:str,session:Session):
     try:
