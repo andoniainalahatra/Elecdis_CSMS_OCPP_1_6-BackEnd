@@ -1,6 +1,6 @@
 from sqlmodel import Field, SQLModel, Relationship
 from typing import List, Optional
-from datetime import date, datetime,timedelta
+from datetime import date, datetime, timedelta, time
 from enum import Enum
 from sqlalchemy import Index
 from sqlalchemy import PrimaryKeyConstraint, Index, UniqueConstraint
@@ -113,6 +113,11 @@ class Tariff(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     tariff_group_id: int = Field(foreign_key="tariffgroup.id")
+    start_hour: time
+    end_hour: time
+    price: float
+    currency: Optional[str]
+    energy_unit: Optional[str]
 
     tariff_group: Optional["TariffGroup"] = Relationship(back_populates="tariffs")
     tariff_snapshots: List["TariffSnapshot"] = Relationship(back_populates="tariff")
@@ -123,9 +128,12 @@ class Tariff(TimestampMixin, table=True):
 class Transaction(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     session_id: Optional[int] = Field(default=None, foreign_key="session.id")
-    amount: float
-    timestamp: datetime
-
+    currency: Optional[str]
+    unit_price: float
+    total_price: float
+    consumed_energy: float
+    currency: Optional[str]
+    energy_unit: Optional[str]
     session: Optional["Session"] = Relationship(back_populates="transactions")
 
     __table_args__ = (Index("ix_transaction_id", "id"),)
