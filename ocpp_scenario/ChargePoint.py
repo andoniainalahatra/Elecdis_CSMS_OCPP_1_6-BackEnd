@@ -4,6 +4,7 @@ from datetime import datetime
 from ocpp.routing import on
 from ocpp.v16 import ChargePoint as cp
 import logging
+from ocpp.exceptions import OCPPError
 logging.basicConfig(level=logging.INFO)
 class ChargePoint(cp):
     def __init__(self,charge_point_id,connection,boot_notification_scenario,heartbeat_scenario,statusnotification_scenario,start_scenario,stop_scenario,authorize,meter_value_scenario):
@@ -48,6 +49,9 @@ class ChargePoint(cp):
         if handler:
             return await handler(**payload) 
         else:
-            raise ValueError(f'Unsupported action: {action}')
+            raise OCPPError(
+                "NotImplemented",
+                "This action is not supported by the Charge Point."
+            )
     
     
