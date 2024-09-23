@@ -46,7 +46,7 @@ class Connexion:
                     message1 = await websocket.recv()
                     message = json.loads(message1)
                     val=Response(charge_point_id,message)
-                    logging.info(f"Message reçu brut : {message1}")
+                    logging.info(f"CP ========> CSMS {message1}")
                     try:
                         if message[0] == 2:
                             await message_queue.put(val.to_dict())
@@ -116,9 +116,9 @@ class Connexion:
                 return
             
             payload = json.dumps(payload) if isinstance(payload, (dict, list)) else str(payload)
-            logging.info(f"Payload type after conversion: {type(payload)}")
+            #logging.info(f"Payload type after conversion: {type(payload)}")
             await websocket.send(payload)
-            print(f"Sent message to {charge_point_id}: {payload}")
+            #print(f"Sent message to {charge_point_id}: {payload}")
 
         except ConnectionClosedError:
             logging.info("WebSocket connection closed")
