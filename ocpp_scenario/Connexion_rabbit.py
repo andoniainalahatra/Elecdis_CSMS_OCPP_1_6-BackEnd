@@ -16,7 +16,7 @@ class Connexion_rabbit:
     async def get_rabbit_connection(self):    
         try:
             self.connection = await aio_pika.connect_robust(CONNECTION_RABBIT)
-            logging.info("Connection to RabbitMQ established")
+            #logging.info("Connection to RabbitMQ established")
             return self.connection
         except Exception as e:
             logging.error(f"Error connecting to RabbitMQ: {e}")
