@@ -59,7 +59,7 @@ def update_connector_status(id_connector:str,connector:Connector_update,session 
         create_historique_status(histo, session)  
         if can_commit:
             session.commit()  
-        logging.info(f"Historique inséré pour le connecteur ID: {id_connector} avec le statut: {conne.status}")
+        #logging.info(f"Historique inséré pour le connecteur ID: {id_connector} avec le statut: {conne.status}")
 
         #charge=session.exec(select(ChargePoint).where(ChargePoint.id == connector.charge_point_id)).first()
         #if charge is None:
