@@ -83,8 +83,9 @@ async def import_from_csv_cp(file: UploadFile = File(...), session : Session = D
 
 @router.post("/send/{charge_point_id}/{transaction_id}")
 async def send_message(charge_point_id: str, transaction_id: int):
-    # Détails du message à envoyer
-    message = [2, "15455", "RemoteStopTransaction", {"transactionId": transaction_id}]
+    from ocpp_scenario.RemoteStopTransaction import RemoteStopTransaction
+    remote=RemoteStopTransaction()
+    message = remote.on_remoteStop(transaction_id)
     response_json = {
         "charge_point_id": charge_point_id,
         "payload": message
