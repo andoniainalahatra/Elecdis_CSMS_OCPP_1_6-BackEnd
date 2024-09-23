@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI
 
@@ -38,8 +38,7 @@ current_dir = Path(__file__).resolve()
 
 # Navigate up to the project root (adjust the number of parents as needed)
 root_dir = current_dir.parents[1]  # Adjust '1' depending on how many levels up the root is
-
-print("root ",root_dir)
+dr=datetime.now() + timedelta(days=2)
 app.include_router(routers)
 
 # print("update session ")
