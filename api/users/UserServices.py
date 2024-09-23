@@ -70,9 +70,6 @@ def create_default_admin_usergroup(session: Session):
         admin_group = UserGroup(name=ADMIN_NAME)
         session.add(admin_group)
         session.commit()
-        print(f"Default {ADMIN_NAME} user group created.")
-    else:
-        print(f"{ADMIN_NAME} user group already exists.")
 
 
 def get_all_clients(session: Session = Depends(get_session), page: int = 1, number_items: int = 50):

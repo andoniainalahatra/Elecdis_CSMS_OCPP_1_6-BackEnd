@@ -11,8 +11,8 @@ router = APIRouter()
 
 
 @router.get("/current/")
-def get_current_session_list(session : Session = Depends(get_session),page:Optional[int]=1, limit:Optional[int]=10):
-    return get_current_sessions(session, Pagination(page=page, limit=limit))
+def get_current_session_list(session : Session = Depends(get_session),page:Optional[int]=1, number_items:Optional[int]=10):
+    return get_current_sessions(session, Pagination(page=page, limit=number_items))
 
 @router.get("/current/count")
 def count_current_sessions(session : Session = Depends(get_session)):
@@ -23,8 +23,8 @@ def total_session_charge(session: Session = Depends(get_session)):
     return {"total_sessions":total_session_de_charges(session)}
 
 @router.get("/all/")
-def get_all_sessions(session: Session = Depends(get_session), page:Optional[int]=1, limit:Optional[int]=10):
-    return get_all_session(session, Pagination(page=page, limit=limit))
+def get_all_sessions(session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=10):
+    return get_all_session(session, Pagination(page=page, limit=number_items))
 
 @router.get("/test")
 def test(session: Session = Depends(get_session)):

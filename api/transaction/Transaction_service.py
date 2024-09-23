@@ -120,6 +120,8 @@ def get_session_data(session:SessionModel):
         metter_start=session.metter_start,
         metter_stop=session.metter_stop,
         tag=session.tag
+        ,
+        charge_point_id=session.connector.charge_point_id
     )
     return data
 
