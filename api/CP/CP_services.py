@@ -6,6 +6,12 @@ from fastapi import UploadFile
 from core.utils import *
 from sqlalchemy import or_
 from datetime import date, datetime,timedelta
+import aio_pika
+from aio_pika import ExchangeType, Message as AioPikaMessage,IncomingMessage
+import json
+from core.config import *
+from ocpp_scenario.RemoteStopTransaction import RemoteStopTransaction
+from ocpp_scenario.RemoteStartTransaction import RemoteStartTransaction
 
 
 
@@ -327,6 +333,55 @@ async def upload_charge_points_from_csv(file: UploadFile, session: Session):
     except Exception as e:
         session.rollback()
         return {"message": f"Error: {str(e)}"}
+    
+
+async def send_remoteStopTransaction(charge_point_id: str, transaction_id: int):
+    remote=RemoteStopTransaction()
+    message = remote.on_remoteStop(transaction_id)
+    response_json = {
+        "charge_point_id": charge_point_id,
+        "payload": message
+    }
+        
+    try:
+        connection = await aio_pika.connect_robust(CONNECTION_RABBIT)
+        async with connection:
+            channel = await connection.channel()
+            exchange = await channel.get_exchange("micro_ocpp") 
+            await exchange.publish(
+                AioPikaMessage(body=json.dumps(response_json).encode()),
+                routing_key="02"
+            )
+
+
+        return {"status": "Message sent", "response": message}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send message: {e}")
+async def send_remoteStartTransaction(charge_point_id: str, idTag:str,connectorId:str):
+    remote=RemoteStartTransaction()
+    message = remote.on_remoteStart(idTag,connectorId)
+    response_json = {
+        "charge_point_id": charge_point_id,
+        "payload": message
+    }
+        
+    try:
+        connection = await aio_pika.connect_robust(CONNECTION_RABBIT)
+        async with connection:
+            channel = await connection.channel()
+            exchange = await channel.get_exchange("micro_ocpp") 
+            await exchange.publish(
+                AioPikaMessage(body=json.dumps(response_json).encode()),
+                routing_key="02"
+            )
+
+
+        return {"status": "Message sent", "response": message}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send message: {e}")
+    
     
 
 

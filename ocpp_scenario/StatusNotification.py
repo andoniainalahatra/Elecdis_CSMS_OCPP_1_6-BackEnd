@@ -24,10 +24,10 @@ class StatusNotification:
         try:
             result=read_detail_cp(charge_point_id,session)
             existing_connectors = [row['id_connecteur'] for row in result]
-            logging.info(f"ChargePoint ID: {charge_point_id}")
-            logging.info(existing_connectors)
+            #logging.info(f"ChargePoint ID: {charge_point_id}")
+            #logging.info(existing_connectors)
             if f"{connectorId}{charge_point_id}" not in existing_connectors :
-                logging.info(f"Status: ConnectorId={connectorId}, ErrorCode={errorCode}, Status={status}")
+                #logging.info(f"Status: ConnectorId={connectorId}, ErrorCode={errorCode}, Status={status}")
                 conne=Connector_create(id=f"{connectorId}{charge_point_id}",connector_type="evse",connector_id=0,charge_point_id=charge_point_id,status=status,valeur=0)
                 create_connector(conne,session)
             else:

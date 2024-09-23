@@ -54,25 +54,25 @@ class ConsumerRabbit:
                                 response = await cp.process_message(action, pay)
                                 response_dict = response
                                 response_json = Response(charge_point_id, [3, payload[1], response_dict])
-                                logging.info(f"uefbfy{response_json.to_dict()}")
+                                #logging.info(f"uefbfy{response_json.to_dict()}")
                             except OCPPError as e:
                                 response_dict = {
                                     "errorCode": e.args[0], 
                                     "errorDescription": e.args[1] if len(e.args) > 1 else "Unknown error", 
                                     "errorDetails": {} 
                                 }
-                                logging.error(f"OCPPError: {response_dict['errorCode']}, Description: {response_dict['errorDescription']}")
+                                #logging.error(f"OCPPError: {response_dict['errorCode']}, Description: {response_dict['errorDescription']}")
                                 response_json = Response(charge_point_id, [4, payload[1], response_dict])
                             except Exception as ex:
                                 logging.error(f"Unexpected error: {ex}")
                                 response_json = Response(charge_point_id, [4, payload[1], {"errorCode": "InternalError", "errorDescription": str(ex)}])
                             await rabbit.publish_message(response_json.to_dict(), "02")
-                            logging.info(f"Response published to RabbitMQ: {response_json}")  
+                            #logging.info(f"Response published to RabbitMQ: {response_json}")  
                     except json.JSONDecodeError as e:
                         logging.error(f"Failed to decode JSON message: {e}")
             await queue_close.consume(on_message)
             await queue.consume(on_message)
-            logging.info("Consumer started and waiting for messages...")
+            #logging.info("Consumer started and waiting for messages...")
             await asyncio.Future()
       
                 
