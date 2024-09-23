@@ -21,7 +21,7 @@ class Authorize:
         # check if tag exists in the database
         session : Session = next(get_session())
         tag= get_by_tag(session,idTag)
-        expiry_date =( datetime.now() + timedelta(days=2)).isoformat()
+        expiry_date =datetime.now().isoformat()
         if tag is None:
 
             return {
