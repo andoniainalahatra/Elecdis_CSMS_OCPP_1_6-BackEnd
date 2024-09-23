@@ -21,4 +21,4 @@ COPY alembic.ini alembic/
 EXPOSE 8080
 
 # Démarrer l'application
-CMD ["uvicorn", "core.main:app", "--host", "10.172.16.3", "--port", "8080"]
+CMD ["uvicorn", "core.main:app", "--host", "0.0.0.0", "--port", "8080"]
