@@ -21,20 +21,20 @@ class Authorize:
         # check if tag exists in the database
         session : Session = next(get_session())
         tag= get_by_tag(session,idTag)
-        expiry_date =datetime.now().isoformat()
+        expiry_date =(datetime.now() + timedelta(days=2))
         if tag is None:
 
             return {
                 "idTagInfo":{
                     'status': 'Blocked',
-                    'expiryDate': str(expiry_date)
+                    'expiryDate': expiry_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
                 }
             }
         else:
             return {
                 "idTagInfo":{
                     'status': 'Accepted',
-                    'expiryDate': str(expiry_date)
+                    'expiryDate': expiry_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
                 }
             }
 
