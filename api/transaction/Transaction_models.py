@@ -26,5 +26,6 @@ class Session_list_model(BaseModel):
     metter_start: Optional[float]
     metter_stop: Optional[float]
     tag:str
+    charge_point_id: int
 
 

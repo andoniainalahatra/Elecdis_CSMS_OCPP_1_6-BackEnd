@@ -1,4 +1,7 @@
+import uuid
 class RemoteStopTransaction:
-    @staticmethod
-    def on_remoteStop(transaction_id:int):
-        return [2, "15455", "RemoteStopTransaction", {"transactionId": transaction_id}]
+    def generate_message_id(self):
+        return str(uuid.uuid4())
+    def on_remoteStop(self,transaction_id:int):
+        message_id=self.generate_message_id()
+        return [2, message_id, "RemoteStopTransaction", {"transactionId": transaction_id}]

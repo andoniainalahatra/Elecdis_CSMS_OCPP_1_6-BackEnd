@@ -19,6 +19,7 @@ def update_rfid(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
         update_data: Rfid_update, session: Session = Depends(get_session)):
     update_rfid_service(update_data, session)
+    return {"message": "RFID updated successfully"}
 
 
 @router.post("/")
@@ -27,6 +28,8 @@ def create_rfid(
 
         create_data: Rfid_create, session: Session = Depends(get_session)):
     create_rfid_service(rfid=create_data, session=session)
+    return {"message": "RFID creaed successfully"}
+
 
 
 @router.delete("/{id}")
@@ -45,8 +48,8 @@ async def import_from_csv(file: UploadFile = File(...), session : Session = Depe
 @router.get("/all")
 def get_all_rfid_list(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
-        session: Session = Depends(get_session)):
-    return get_all_rfid(session)
+        session: Session = Depends(get_session), page: int = 1, number_items: int = 50):
+    return get_all_rfid(session, page, number_items)
 
 @router.get("/deleted")
 def get_deleted_rfid_list(

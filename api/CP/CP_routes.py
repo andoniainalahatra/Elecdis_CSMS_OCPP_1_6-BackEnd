@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends,status,HTTPException,UploadFile,File
 from sqlalchemy.orm import Session
-from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp,recherche_cp
+from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp,recherche_cp,send_remoteStopTransaction,send_remoteStartTransaction
 from api.CP.CP_models import Cp_create,Cp_update
 
 from core.database import get_session
@@ -81,31 +81,18 @@ async def import_from_csv_cp(file: UploadFile = File(...), session : Session = D
         print(message)
     return {"message": "Charge points imported successfully"}
 
-@router.post("/send/{charge_point_id}/{transaction_id}")
-async def send_message(charge_point_id: str, transaction_id: int):
-    from ocpp_scenario.RemoteStopTransaction import RemoteStopTransaction
-    remote=RemoteStopTransaction()
-    message = remote.on_remoteStop(transaction_id)
-    response_json = {
-        "charge_point_id": charge_point_id,
-        "payload": message
-    }
-    
+@router.post("/send_remoteStopTransaction/{charge_point_id}/{transaction_id}")
+async def send_messageRemoteStopTransaction(charge_point_id: str, transaction_id: int):
     try:
-        connection = await aio_pika.connect_robust(CONNECTION_RABBIT)
-        async with connection:
-            channel = await connection.channel()
-            exchange = await channel.get_exchange("micro_ocpp") 
-            await exchange.publish(
-                AioPikaMessage(body=json.dumps(response_json).encode()),
-                routing_key="02"
-            )
-
-
-        return {"status": "Message sent", "response": message}
-
+      return await send_remoteStopTransaction(charge_point_id,transaction_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to send message: {e}")
+        raise e
+@router.post("/send_remoteStartTransaction/{charge_point_id}/{idTag}/{connectorId}")
+async def send_messageRemoteStartTransaction(charge_point_id: str, idTag:str,connectorId:str):
+    try:
+      return await send_remoteStartTransaction(charge_point_id,idTag,connectorId)
+    except Exception as e:
+        raise e
 
     
 

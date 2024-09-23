@@ -120,6 +120,8 @@ def get_session_data(session:SessionModel):
         metter_start=session.metter_start,
         metter_stop=session.metter_stop,
         tag=session.tag
+        ,
+        charge_point_id=session.connector.charge_point_id
     )
     return data
 
@@ -140,7 +142,7 @@ def create_transaction_by_session(sessionModel:SessionModel, session_db:Session_
         total_price=total_price,
         consumed_energy=consumed_energy,
         # this one also need to be changed based on what we get from the ocpp messages okay ?
-        unit=tarif.unit
+        energy_unit=tarif.energy_unit
     )
     session_db.add(transaction)
     if can_commit:
