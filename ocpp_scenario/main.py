@@ -13,17 +13,17 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 # Define the WebSocket server startup function
 async def start_websocket_server():
     try:
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ssl_context.load_cert_chain(certfile="./certificate_key/cert.pem", keyfile="./certificate_key/key.pem")
+        #ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        #ssl_context.load_cert_chain(certfile="./certificate_key/cert.pem", keyfile="./certificate_key/key.pem")
         connexion = Connexion()
         server = await websockets.serve(
             connexion.on_connect,
             '0.0.0.0',
             9001,
-            ssl=ssl_context,
+            #ssl=ssl_context,
             subprotocols=['ocpp1.6']
         )
-        logging.info("Serveur WebSocket démarré sur wss://0.0.0.0:9001")
+        logging.info("Serveur WebSocket démarré sur ws://0.0.0.0:9001")
         await server.wait_closed()
     except Exception as e:
         logging.error("Erreur lors du démarrage du serveur : %s", str(e))
