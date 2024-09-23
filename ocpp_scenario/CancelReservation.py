@@ -1,3 +1,7 @@
+import uuid
 class CancelReservation:
+    def generate_message_id(self):
+        return str(uuid.uuid4())
     def on_cancelReservation(self,reservationId:int):
-        return [2,"15455","CancelReservation",{"reservationId":reservationId}]
+        message_id=self.generate_message_id()
+        return [2,message_id,"CancelReservation",{"reservationId":reservationId}]
