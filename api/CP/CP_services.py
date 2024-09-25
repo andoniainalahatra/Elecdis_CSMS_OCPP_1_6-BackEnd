@@ -1,6 +1,6 @@
 from api.CP.CP_models import Cp_create,Cp_update
-from models.elecdis_model import ChargePoint,StatusEnum,Connector
-from sqlmodel import Session, select,func
+from models.elecdis_model import ChargePoint,StatusEnum,Connector,Historique_metter_value
+from sqlmodel import Session, select,func,extract,case
 from models.Pagination import Pagination
 from fastapi import UploadFile
 from core.utils import *
@@ -126,6 +126,7 @@ def read_detail_cp(id_cp:str,session:Session):
         )
         .join(Connector, ChargePoint.id == Connector.charge_point_id)
         .where(Connector.charge_point_id==id_cp)
+        .where(Connector.id.not_like('0%'))
     ).all()
     if result is None:
         raise Exception(f"CP  with id {id_cp} does not exist.")
@@ -148,12 +149,29 @@ def read_detail_cp(id_cp:str,session:Session):
 def read_cp(session:Session, page: int = 1, number_items: int = 50):
     try:
         pagination = Pagination(page=page, limit=number_items)
-        charge=session.exec(select(ChargePoint).where(ChargePoint.state==ACTIVE_STATE).offset(pagination.offset).limit(pagination.limit)).all()
-        numer_itemQuery=session.exec(select(func.count(ChargePoint.id)).where(ChargePoint.state==ACTIVE_STATE)).one()
-        pagination.total_items=numer_itemQuery
-        has_next = len(charge) == pagination.limit
+        charge = session.exec(
+            select(
+                ChargePoint,
+                func.coalesce(func.sum(Connector.valeur), 0).label("energie_consomme")  
+            )
+            .select_from(ChargePoint) 
+            .join(Connector, ChargePoint.id == Connector.charge_point_id, isouter=True)  
+            .where(ChargePoint.state == ACTIVE_STATE)
+            .group_by(ChargePoint.id)
+            .offset(pagination.offset)
+            .limit(pagination.limit)
+        ).all()
+        charge_data = [
+            {
+                "charge_point": cp,  # Convertir ChargePoint en dict
+                "energie_consomme": energy,  # La valeur est déjà gérée par coalesce
+            }
+            for cp, energy in charge
+        ]
 
-        return {"data": charge, "pagination":pagination.dict()}
+        has_next = len(charge)
+        pagination.total_items = has_next
+        return {"data": charge_data, "pagination": pagination.dict()}
     except Exception as e:
         return {"messageError": f"Error: {str(e)}"}
     
@@ -382,6 +400,195 @@ async def send_remoteStartTransaction(charge_point_id: str, idTag:str,connectorI
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send message: {e}")
     
+
+def graph_conso_energie_cp(id_cp:str,session:Session,CurrentYear: int = None):
+    if CurrentYear is None:
+        CurrentYear=datetime.now().year
+    previous_year=CurrentYear-1
+    current_year_data = session.exec(
+        select(
+            extract('month', Historique_metter_value.created_at).label("month"),
+            func.sum(Historique_metter_value.valeur).label("total_value")
+        )
+        .join(Connector, Historique_metter_value.real_connector_id == Connector.id)
+        .join(ChargePoint, Connector.charge_point_id == ChargePoint.id)
+        .where(ChargePoint.id == id_cp)
+        .where(extract('year', Historique_metter_value.created_at) == CurrentYear)
+        .group_by("month")
+    ).all()
+
+    previous_year_data = session.exec(
+        select(
+            extract('month', Historique_metter_value.created_at).label("month"),
+            func.sum(Historique_metter_value.valeur).label("total_value")
+        )
+        .join(Connector, Historique_metter_value.real_connector_id == Connector.id)
+        .join(ChargePoint, Connector.charge_point_id == ChargePoint.id)
+        .where(ChargePoint.id == id_cp)
+        .where(extract('year', Historique_metter_value.created_at) == previous_year)
+        .group_by("month")
+    ).all()
+    months_data = {month: {"label": month_name, "currentValue": 0, "oldValue": 0}
+                   for month, month_name in enumerate(
+                       ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+                        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"], 1)}
+
+    for month, total_value in current_year_data:
+        months_data[month]["currentValue"] = total_value
+
+    for month, total_value in previous_year_data:
+        months_data[month]["oldValue"] = total_value
+    return list(months_data.values())
+
+def graph_trimestriel_conso_energie_cp(id_cp:str,session:Session,CurrentYear: int = None):
+    if CurrentYear is None:
+        CurrentYear=datetime.now().year
+    
+    current_year_data = session.exec(
+        select(
+            extract('quarter', Historique_metter_value.created_at).label("quarter"),
+            func.sum(Historique_metter_value.valeur).label("total_value")
+        )
+        .join(Connector, Historique_metter_value.real_connector_id == Connector.id)
+        .join(ChargePoint, Connector.charge_point_id == ChargePoint.id)
+        .where(ChargePoint.id == id_cp)
+        .where(extract('year', Historique_metter_value.created_at) == CurrentYear)
+        .group_by("quarter")
+    ).all()
+
+    
+    trimestre_data = {trimestre: {"label": trimestre_name, "currentValue": 0}
+                   for trimestre, trimestre_name in enumerate(
+                       ["1er trimestre", "2eme trimestre", "3eme trimestre", "4eme trimestre"], 1)}
+
+    for trimestre, total_value in current_year_data:
+        trimestre_data[trimestre]["currentValue"] = total_value
+
+    return list(trimestre_data.values())
+
+
+def graph_semestriel_conso_energie_cp(id_cp:str,session:Session,CurrentYear: int = None):
+    if CurrentYear is None:
+        CurrentYear=datetime.now().year
+    
+    current_year_data = session.exec(
+        select(
+            case(
+                (func.extract('month', Historique_metter_value.created_at).between(1, 6), 1),  
+                (func.extract('month', Historique_metter_value.created_at).between(7, 12), 2)  
+            ).label("semester"),
+            func.sum(Historique_metter_value.valeur).label("total_value")
+        )
+        .join(Connector, Historique_metter_value.real_connector_id == Connector.id)
+        .join(ChargePoint, Connector.charge_point_id == ChargePoint.id)
+        .where(ChargePoint.id == id_cp)
+        .where(extract('year', Historique_metter_value.created_at) == CurrentYear)
+        .group_by("semester")
+    ).all()
+
+    
+    semestre_data = {semestre: {"label": semestre_name, "currentValue": 0}
+                   for semestre, semestre_name in enumerate(
+                       ["1er semestre", "2eme semestre"], 1)}
+
+    for semestre, total_value in current_year_data:
+        semestre_data[semestre]["currentValue"] = total_value
+
+    return list(semestre_data.values())
+
+
+
+def graph_conso_energie(session:Session,CurrentYear: int = None):
+    if CurrentYear is None:
+        CurrentYear=datetime.now().year
+    previous_year=CurrentYear-1
+    current_year_data = session.exec(
+        select(
+            extract('month', Historique_metter_value.created_at).label("month"),
+            func.sum(Historique_metter_value.valeur).label("total_value")
+        )
+        .join(Connector, Historique_metter_value.real_connector_id == Connector.id)
+        .join(ChargePoint, Connector.charge_point_id == ChargePoint.id)
+        .where(extract('year', Historique_metter_value.created_at) == CurrentYear)
+        .group_by("month")
+    ).all()
+
+    previous_year_data = session.exec(
+        select(
+            extract('month', Historique_metter_value.created_at).label("month"),
+            func.sum(Historique_metter_value.valeur).label("total_value")
+        )
+        .join(Connector, Historique_metter_value.real_connector_id == Connector.id)
+        .join(ChargePoint, Connector.charge_point_id == ChargePoint.id)
+        .where(extract('year', Historique_metter_value.created_at) == previous_year)
+        .group_by("month")
+    ).all()
+    months_data = {month: {"label": month_name, "currentValue": 0, "oldValue": 0}
+                   for month, month_name in enumerate(
+                       ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+                        "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"], 1)}
+
+    for month, total_value in current_year_data:
+        months_data[month]["currentValue"] = total_value
+
+    for month, total_value in previous_year_data:
+        months_data[month]["oldValue"] = total_value
+    return list(months_data.values())
+
+def graph_trimestriel_conso_energie(session:Session,CurrentYear: int = None):
+    if CurrentYear is None:
+        CurrentYear=datetime.now().year
+    
+    current_year_data = session.exec(
+        select(
+            extract('quarter', Historique_metter_value.created_at).label("quarter"),
+            func.sum(Historique_metter_value.valeur).label("total_value")
+        )
+        .join(Connector, Historique_metter_value.real_connector_id == Connector.id)
+        .join(ChargePoint, Connector.charge_point_id == ChargePoint.id)
+        .where(extract('year', Historique_metter_value.created_at) == CurrentYear)
+        .group_by("quarter")
+    ).all()
+
+    
+    trimestre_data = {trimestre: {"label": trimestre_name, "currentValue": 0}
+                   for trimestre, trimestre_name in enumerate(
+                       ["1er trimestre", "2eme trimestre", "3eme trimestre", "4eme trimestre"], 1)}
+
+    for trimestre, total_value in current_year_data:
+        trimestre_data[trimestre]["currentValue"] = total_value
+
+    return list(trimestre_data.values())
+
+
+def graph_semestriel_conso_energie(session:Session,CurrentYear: int = None):
+    if CurrentYear is None:
+        CurrentYear=datetime.now().year
+    
+    current_year_data = session.exec(
+        select(
+            case(
+                (func.extract('month', Historique_metter_value.created_at).between(1, 6), 1),  
+                (func.extract('month', Historique_metter_value.created_at).between(7, 12), 2)  
+            ).label("semester"),
+            func.sum(Historique_metter_value.valeur).label("total_value")
+        )
+        .join(Connector, Historique_metter_value.real_connector_id == Connector.id)
+        .join(ChargePoint, Connector.charge_point_id == ChargePoint.id)
+        .where(extract('year', Historique_metter_value.created_at) == CurrentYear)
+        .group_by("semester")
+    ).all()
+
+    
+    semestre_data = {semestre: {"label": semestre_name, "currentValue": 0}
+                   for semestre, semestre_name in enumerate(
+                       ["1er semestre", "2eme semestre"], 1)}
+
+    for semestre, total_value in current_year_data:
+        semestre_data[semestre]["currentValue"] = total_value
+
+    return list(semestre_data.values())
+
     
 
 

@@ -3,6 +3,7 @@ from models.elecdis_model import ChargePoint,Connector,StatusEnum,Historique_sta
 from sqlmodel import Session, select
 from fastapi import HTTPException
 from datetime import timedelta
+from sqlmodel import Session, select,func,extract
 import logging
 logging.basicConfig(level=logging.INFO)
 
@@ -149,4 +150,40 @@ def somme_metervalues(id_connector:str,session:Session):
         return total_value 
     except Exception as e:
         return {"messageError": f" {str(e)}"}
+    
+def graph_connector_status(session:Session):
+    total_connector = session.exec(
+        select(func.count(Connector.id))
+        .where(Connector.id.not_like('0%'))).first()
+
+
+    total_unavailable_connector = session.exec(
+        select(func.count(Connector.id)).where(Connector.status == "Unavailable").where(Connector.id.not_like('0%'))
+    ).first()
+    total_charging_connector = session.exec(
+        select(func.count(Connector.id.not_like('0%')))
+        .where(Connector.status == "Charging")
+        .where(Connector.id.not_like('0%'))
+    ).first()
+    total_available_connector=int(total_connector-(total_unavailable_connector+total_charging_connector))
+    
+    stats = [
+        {
+            "status": "charging",
+            "value": total_charging_connector,
+            "fill": "var(--color-charging)"
+        },
+        {
+            "status": "available",
+            "value": total_available_connector,
+            "fill": "var(--color-available)"
+        },
+        {
+            "status": "unavailable",
+            "value": total_unavailable_connector,
+            "fill": "var(--color-unavailable)"
+        }
+    ]
+    
+    return stats
     

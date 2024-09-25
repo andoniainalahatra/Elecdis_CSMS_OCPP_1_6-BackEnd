@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends,status,HTTPException,UploadFile,File
 from sqlalchemy.orm import Session
-from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp,recherche_cp,send_remoteStopTransaction,send_remoteStartTransaction
+from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp,recherche_cp,send_remoteStopTransaction,send_remoteStartTransaction,graph_conso_energie_cp,graph_trimestriel_conso_energie_cp,graph_semestriel_conso_energie_cp,graph_conso_energie,graph_semestriel_conso_energie,graph_trimestriel_conso_energie
 from api.CP.CP_models import Cp_create,Cp_update
-
+from datetime import date, datetime
 from core.database import get_session
 import aio_pika
 from aio_pika import ExchangeType, Message as AioPikaMessage,IncomingMessage
@@ -52,7 +52,7 @@ def read_charge(session : Session=Depends(get_session), page: int = 1, number_it
     try:
         return read_cp(session,page,number_items)
     except Exception as e:
-        raise e
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=str(e))
 @router.get("/recherche_cp")
 def recherche_charge(query : str,session : Session=Depends(get_session) ,page: int = 1, number_items: int = 50):
     try:
@@ -91,6 +91,51 @@ async def send_messageRemoteStopTransaction(charge_point_id: str, transaction_id
 async def send_messageRemoteStartTransaction(charge_point_id: str, idTag:str,connectorId:str):
     try:
       return await send_remoteStartTransaction(charge_point_id,idTag,connectorId)
+    except Exception as e:
+        raise e
+
+@router.get("/graph_conso_energie_status/{id_cp}")
+def graph_conso_energie_charge(id_cp:str,session : Session=Depends(get_session),CurrentYear:int = None):
+    try:
+      return  graph_conso_energie_cp(id_cp,session,CurrentYear)
+    except Exception as e:
+        raise e
+
+@router.get("/graph_trimestriel_conso_energie_status/{id_cp}")
+def graph_trimestriel_conso_energie_charge(id_cp:str,session : Session=Depends(get_session),CurrentYear:int = None):
+    try:
+      return  graph_trimestriel_conso_energie_cp(id_cp,session,CurrentYear)
+    except Exception as e:
+        raise e
+    
+@router.get("/graph_semestriel_conso_energie_status/{id_cp}")
+def graph_semestriel_conso_energie_charge(id_cp:str,session : Session=Depends(get_session),CurrentYear:int = None):
+    try:
+      return  graph_semestriel_conso_energie_cp(id_cp,session,CurrentYear)
+    except Exception as e:
+        raise e
+    
+
+
+
+@router.get("/graph_conso_energie/")
+def graph_conso_energie_dashboard(session : Session=Depends(get_session),CurrentYear:int = None):
+    try:
+      return  graph_conso_energie(session,CurrentYear)
+    except Exception as e:
+        raise e
+
+@router.get("/graph_trimestriel_conso_energie/")
+def graph_trimestriel_conso_energie_dashboard(session : Session=Depends(get_session),CurrentYear:int = None):
+    try:
+      return  graph_trimestriel_conso_energie(session,CurrentYear)
+    except Exception as e:
+        raise e
+    
+@router.get("/graph_semestriel_conso_energie/")
+def graph_semestriel_conso_energie_dashboard(session : Session=Depends(get_session),CurrentYear:int = None):
+    try:
+      return  graph_semestriel_conso_energie(session,CurrentYear)
     except Exception as e:
         raise e
 
