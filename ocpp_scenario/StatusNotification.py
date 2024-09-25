@@ -37,6 +37,6 @@ class StatusNotification:
             session.commit()
         except Exception as e:
            session.rollback() 
-           logging.error(f"blabla{e}") 
+           logging.error(f"rollback:{e}") 
 
         return {}
