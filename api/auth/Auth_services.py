@@ -196,22 +196,45 @@ def login(username: str, password: str, session: Session):
         "access_token": access_token, "token_type": "bearer","user":user_data}
 
 
-def update_user(user_to_update: UserUpdate, session: Session):
-    validate_user(user_to_update, session, check_email=False)
-    user_to_update = trim_data(user_to_update)
-    check_empty_fields(user_to_update)
-    user: User = session.exec(select(User).where(User.id == user_to_update.id, User.state!=DELETED_STATE)).first()
+def update_user(user_to_update:UserUpdate, session: Session, user_id: int):
+    user: User = get_user_by_id(user_id, session)
     if user is None:
-        raise Exception(f"User with id {user_to_update.id} does not exist")
-    user.first_name = user_to_update.first_name
-    user.last_name = user_to_update.last_name
-    user.email = user_to_update.email
-    user.phone = user_to_update.phone
-    user.id_user_group = user_to_update.id_user_group
-    user.id_subscription = user_to_update.id_subscription
-    user.id_partner = user_to_update.id_partner
-    user.password = get_password_hash(user_to_update.password)
-    user.updated_at=datetime.utcnow()
+        raise Exception(f"User with id {user_id} does not exist")
+    if user_to_update.first_name is not None:
+        user.first_name = user_to_update.first_name.strip()
+    if user_to_update.last_name is not None:
+        user.last_name = user_to_update.last_name.strip()
+    if user_to_update.email is not None:
+        try:
+            verify_email_structure(user_to_update.email)
+            if check_email_if_exists(user.email, session) and user.email != user_to_update.email:
+                raise EmailException(f"Email {user.email} already exists")
+            user.email = user_to_update.email
+        except EmailException as e:
+            raise e
+    if user_to_update.phone is not None:
+        user.phone = user_to_update.phone.strip()
+    if user_to_update.id_user_group is not None:
+        userGroup = session.exec(select(UserGroup).where(UserGroup.id == user.id_user_group)).first()
+        if userGroup is None:
+            raise Exception(f"UserGroup {user.id_userModel} does not exist")
+        user.id_user_group = user_to_update.id_user_group
+    if user_to_update.id_subscription is not None:
+        subscription = session.exec(select(Subscription).where(Subscription.id == user.id_subscription)).first()
+        if subscription is None:
+            raise SubscriptionException(f"Subscription {user.id_subscription} does not exist")
+        user.id_subscription = user_to_update.id_subscription
+    if user_to_update.id_partner is not None:
+        partner = session.exec(select(Partner).where(Partner.id == user.id_partner)).first()
+        if partner is None:
+            raise Exception(f"Partner {user.id_partner} does not exist")
+        user.id_partner = user_to_update.id_partner
+    if user_to_update.password is not None:
+        user.password = get_password_hash(user_to_update.password)
+
+
+
+    user.updated_at = datetime.utcnow()
     session.add(user)
     session.commit()
     return user

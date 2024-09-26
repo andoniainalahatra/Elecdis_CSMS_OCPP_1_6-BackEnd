@@ -86,18 +86,20 @@ def get_user_profile_by_id(user_id: int, session: Session = Depends(get_session)
     sessions = get_user_sessions_list(user, session)
     return {"user": user, "transactions": transactions, "sessions": sessions}
 
-@router.put("/profile")
-def update_user_profile(user_to_update: UserUpdate, token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session)):
+@router.put("/profile/{id}")
+def update_user_profile(user_to_update:UserUpdate,id:int,
+                        # token: str = Depends(oauth_2_scheme),
+                        session: Session = Depends(get_session)):
     try :
-        update_user(user_to_update, session)
+        update_user(user_to_update, session,id)
     except Exception as e:
         raise HTTPException(status_code= status.HTTP_400_BAD_REQUEST, detail=str(e))
     return {"message": "User updated successfully"}
 
 # @router.post
 @router.get("/{id}")
-def get_user_by_id(id: int, session: Session = Depends(get_session)):
-        user = session.exec(select(User).where(User.id == id)).first()
+def get_user_by_id_route(id: int, session: Session = Depends(get_session)):
+        user = get_user_by_id(id, session)
         if user is None:
             raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="User not found")
         return user

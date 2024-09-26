@@ -28,15 +28,14 @@ class UserData(BaseModel):
 
 
 class UserUpdate(BaseModel):
-    id: int
-    first_name: str
-    last_name: str
-    email: str
-    id_user_group: int
-    phone: str
-    password: str
-    id_subscription: Optional[int]
-    id_partner: Optional[int]
+    first_name: Optional[str]=None
+    last_name: Optional[str]=None
+    email: Optional[str]=None
+    id_user_group: Optional[int]=None
+    phone: Optional[str]=None
+    password: Optional[str]=None
+    id_subscription: Optional[int]=None
+    id_partner: Optional[int]=None
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_email_structure(email: str):
