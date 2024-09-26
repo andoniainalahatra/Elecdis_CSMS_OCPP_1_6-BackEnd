@@ -1,4 +1,4 @@
-from api.CP.CP_models import Cp_create,Cp_update
+from api.CP.CP_models import Cp_create,Cp_update,Cp_form
 from models.elecdis_model import ChargePoint,StatusEnum,Connector,Historique_metter_value
 from sqlmodel import Session, select,func,extract,case
 from models.Pagination import Pagination
@@ -161,14 +161,10 @@ def read_cp(session:Session, page: int = 1, number_items: int = 50):
             .offset(pagination.offset)
             .limit(pagination.limit)
         ).all()
-        charge_data = [
-            {
-                "charge_point": cp,  # Convertir ChargePoint en dict
-                "energie_consomme": energy,  # La valeur est déjà gérée par coalesce
-            }
-            for cp, energy in charge
-        ]
-
+        charge_data = []
+        for cp, energy in charge:
+            val=Cp_form(id=cp.id,serial_number=cp.serial_number,charge_point_model=cp.charge_point_model,charge_point_vendors=cp.charge_point_vendors,status=cp.status,adresse=cp.adresse,latitude=cp.latitude,longitude=cp.longitude,energie_consomme=energy)
+            charge_data.append(dict(val))
         has_next = len(charge)
         pagination.total_items = has_next
         return {"data": charge_data, "pagination": pagination.dict()}

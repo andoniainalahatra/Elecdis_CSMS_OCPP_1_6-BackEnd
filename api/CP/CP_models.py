@@ -20,6 +20,16 @@ class Cp_update(BaseModel):
     charge_point_vendors:Optional[str]=None
     status:Optional[str]=None
     time:Optional[datetime]=datetime.now
+class Cp_form(BaseModel):
+    id: str
+    serial_number : str
+    charge_point_model : str
+    charge_point_vendors :str
+    status: str
+    adresse:str
+    latitude:float
+    longitude:float
+    energie_consomme:float
 
 
    
