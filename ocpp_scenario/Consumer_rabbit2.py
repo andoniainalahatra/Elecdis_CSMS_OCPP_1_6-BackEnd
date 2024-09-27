@@ -26,7 +26,7 @@ class ConsumerRabbit2:
                             payload = ocpp_message.get("payload")
                             charge_point_id = ocpp_message.get("charge_point_id")
                             connexion=Connexion()
-                            await asyncio.sleep(2)
+                            #await asyncio.sleep(2)
                             await connexion.send_messages(charge_point_id,payload)
                             logging.info(f"CP <========== CSMS{payload}")
                         
