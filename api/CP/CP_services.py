@@ -144,6 +144,36 @@ def read_detail_cp(id_cp:str,session:Session):
     ]
 
     return formatted_result
+def read_detail_cp_update(id_cp:str,session:Session):
+    result = session.exec(
+        select(
+            ChargePoint.id.label("id_charge_point"),
+            ChargePoint.charge_point_model.label("charge_point_model"),
+            ChargePoint.charge_point_vendors.label("charge_point_vendors"),
+            ChargePoint.adresse.label("adresse"),
+            Connector.id.label("id_connecteur"),
+            ChargePoint.status.label("status_charge_point"),
+            Connector.status.label("status_connector")
+        )
+        .join(Connector, ChargePoint.id == Connector.charge_point_id)
+        .where(Connector.charge_point_id==id_cp)
+    ).all()
+    if result is None:
+        raise Exception(f"CP  with id {id_cp} does not exist.")
+    formatted_result = [
+        {
+            "id_charge_point": row.id_charge_point,
+            "id_connecteur": row.id_connecteur,
+            "status_charge_point": row.status_charge_point,
+            "status_connector": row.status_connector,
+            "charge_point_model":row.charge_point_model,
+            "charge_point_vendors":row.charge_point_vendors,
+            "adresse":row.adresse
+        }
+        for row in result
+    ]
+
+    return formatted_result
 
 
 def read_cp(session:Session, page: int = 1, number_items: int = 50):
