@@ -29,4 +29,6 @@ def get_all_sessions(session: Session = Depends(get_session), page:Optional[int]
 @router.get("/test")
 def test(session: Session = Depends(get_session)):
     ses= get_session_by_id(session, 1)
-    return create_transaction_by_session(sessionModel=ses, session_db=session)
+    s=get_sums_transactions(session, 2)
+    print(s)
+    return s

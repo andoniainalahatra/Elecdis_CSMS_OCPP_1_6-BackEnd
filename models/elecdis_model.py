@@ -216,8 +216,8 @@ class Session(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     start_time: Optional[datetime]=None
     end_time: Optional[datetime]=None
-    connector_id: str = Field(foreign_key="connector.id")
-    user_id: int = Field(foreign_key="user_table.id")
+    connector_id: Optional[str] = Field(default=None,foreign_key="connector.id")
+    user_id: Optional[int] = Field(default=None,foreign_key="user_table.id")
     metter_start: Optional[float]
     metter_stop: Optional[float]
     tag:Optional[str]

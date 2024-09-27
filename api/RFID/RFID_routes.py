@@ -9,16 +9,21 @@ from api.RFID.RFID_models import Rfid_update, Rfid_create
 from core.database import get_session
 from core.utils import get_datas_from_csv
 from api.RFID.RFID_Services import update_rfid_service, delete_rfid_service, upload_rfid_from_csv, create_rfid_service, \
-    get_all_rfid, get_deleted_rfid
+    get_all_rfid, get_deleted_rfid, get_rdif_by_id
 
 router = APIRouter()
 
 
-@router.put("/")
+@router.put("/{id}")
 def update_rfid(
-        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
-        update_data: Rfid_update, session: Session = Depends(get_session)):
-    update_rfid_service(update_data, session)
+                # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
+                id:int,
+                update_data: Rfid_update, session: Session = Depends(get_session)):
+    try:
+        update_rfid_service(update_data, session, id)
+    except Exception as e:
+        print("errors : ",e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return {"message": "RFID updated successfully"}
 
 
@@ -57,3 +62,10 @@ def get_deleted_rfid_list(
         session: Session = Depends(get_session)):
 
     return get_deleted_rfid(session)
+
+@router.get("/{id}")
+def get_rfid_by_id_routes(id: int, session: Session = Depends(get_session)):
+    rfid = get_rdif_by_id(id=id, session=session)
+    if rfid is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="RFID not found")
+    return rfid

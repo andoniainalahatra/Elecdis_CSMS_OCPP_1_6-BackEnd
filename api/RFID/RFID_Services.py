@@ -37,28 +37,32 @@ def create_rfid_service(rfid: Rfid_create, session: Session, can_commit: bool = 
         return {"message": f"Error: {str(e)}"}
 
 
-def update_rfid_service(rfid: Rfid_create, session: Session):
-    try:
-        # check user
-        user = get_user_by_id(rfid.user_id, session)
-        if user == None:
-            raise Exception(f"User with id {rfid.user_id} does not exist.")
-        # check rfid
-        rfid.rfid = rfid.rfid.strip()
-        if rfid.rfid is None or rfid.rfid == "":
-            raise ValueError(f"The field 'tag' cannot be empty.")
-        tag: Tag = session.exec(select(Tag).where(Tag.id == rfid.id, cast(Tag.state, Integer) !=DELETED_STATE)).first()
-
+def update_rfid_service(rfid: Rfid_update, session: Session, id:int):
+        print("1")
+        tag: Tag = session.exec(select(Tag).where(Tag.id == id, cast(Tag.state, Integer) !=DELETED_STATE)).first()
         if tag is None:
-            raise Exception(f"Tag with id {rfid.id} does not exist.")
-        tag.tag = rfid.rfid
-        tag.user_id = rfid.user_id
+            print("2")
+            raise Exception(f"Tag with id {id} does not exist.")
+
+        if rfid.rfid is not None:
+            print("3")
+            # check rfid
+            rfid.rfid = rfid.rfid.strip()
+            if rfid.rfid is None or rfid.rfid == "":
+                raise ValueError(f"The field 'tag' cannot be empty.")
+
+            tag.tag = rfid.rfid
+        if rfid.user_id is not None:
+            user = get_user_by_id(rfid.user_id, session)
+            if user == None:
+                raise Exception(f"User with id {rfid.user_id} does not exist.")
+            tag.user_id = rfid.user_id
         tag.updated_at = datetime.now()
+        session.add(tag)
         session.commit()
         session.refresh(tag)
         return tag
-    except Exception as e:
-        return {"message": f"Error: {str(e)}"}
+
 
 
 def delete_rfid_service(id: int, session: Session):
@@ -153,6 +157,8 @@ async def upload_rfid_from_csv(file: UploadFile, session: Session, create_non_ex
 def get_by_tag(session: Session, tag: str):
     return session.exec(select(Tag).where(Tag.tag == tag, Tag.state!=DELETED_STATE )).first()
 
+def get_rdif_by_id(session: Session, id: int):
+    return get_rfid_data(session.exec(select(Tag).where(Tag.id == id, Tag.state!=DELETED_STATE )).first())
 def get_user_by_tag(session : Session, tag : str):
     tag = get_by_tag(session,tag)
     if tag is None:

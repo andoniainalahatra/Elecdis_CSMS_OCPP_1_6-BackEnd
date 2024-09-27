@@ -6,7 +6,8 @@ from sqlmodel import Session as Session_db, select,func
 from core.database import get_session
 from models.Pagination import Pagination
 from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction
-from api.transaction.Transaction_models import Session_create, Session_update, Session_list_model
+from api.transaction.Transaction_models import Session_create, Session_update, Session_list_model, Transaction_details, \
+    Session_data_affichage
 from api.RFID.RFID_Services import get_user_by_tag
 from api.Connector.Connector_services import get_connector_by_id
 from api.Connector.Connector_services import somme_metervalues,update_connector_valeur
@@ -107,7 +108,7 @@ def get_all_session(session:Session_db, pagination:Pagination):
         order_by(SessionModel.id).
         offset(pagination.offset).
         limit(pagination.limit)).all()
-    return {"data":get_list_session_data(sessions),"pagination":pagination.dict()}
+    return {"data":get_list_session_data_2(sessions, session_db=session),"pagination":pagination.dict()}
 
 def get_session_data(session:SessionModel):
     data=Session_list_model(
@@ -117,10 +118,8 @@ def get_session_data(session:SessionModel):
         connector_id=session.connector_id,
         user_id=session.user_id,
         user_name=session.user.first_name + " "+session.user.last_name,
-        metter_start=session.metter_start,
-        metter_stop=session.metter_stop,
-        tag=session.tag
-        ,
+        consumed_energy=session.metter_stop-session.metter_start,
+        rfid=session.tag,
         charge_point_id=session.connector.charge_point_id
     )
     return data
@@ -128,6 +127,45 @@ def get_session_data(session:SessionModel):
 def get_list_session_data (sessions:List[SessionModel]):
     return [get_session_data(session) for session in sessions]
 
+def get_session_data_2(session:SessionModel, session_db:Session_db):
+
+    transaction_datas = get_sums_transactions(session_db, session.id)
+    data=Session_data_affichage(
+        id=session.id,
+        start_time=session.start_time,
+        end_time=session.end_time,
+        connector_id=session.connector_id,
+        user_id=session.user_id,
+        user_name=session.user.first_name + " "+session.user.last_name,
+        consumed_energy=f'{session.metter_stop-session.metter_start} {transaction_datas.energy_unit}',
+        rfid=session.tag,
+        charge_point_id=session.connector.charge_point_id,
+        total_cost=f'{transaction_datas.total_price} {transaction_datas.currency}',
+    )
+    return data
+
+def get_list_session_data_2 (sessions:List[SessionModel], session_db:Session_db):
+    return [get_session_data_2(session,session_db) for session in sessions]
+
+def get_sums_transactions(session:Session_db, session_id:int):
+    sum = session.exec(
+        select(
+            func.sum(Transaction.total_price),
+            Transaction.currency,
+            Transaction.energy_unit
+        ).where(
+            Transaction.session_id == session_id
+        ).group_by(
+            Transaction.currency,
+            Transaction.energy_unit
+        )
+    ).one()
+    result_dict = Transaction_details(
+            total_price= sum[0],
+            currency=sum[1],
+            energy_unit= sum[2])
+
+    return result_dict
 def create_transaction_by_session(sessionModel:SessionModel, session_db:Session_db, can_commit:bool=True):
     tarif = get_one_tarif_from_trans_end(sessionModel.end_time, session_db)
     if tarif is None:
@@ -148,3 +186,17 @@ def create_transaction_by_session(sessionModel:SessionModel, session_db:Session_
     if can_commit:
         session_db.commit()
     return transaction,sessionModel
+
+def create_default_transaction(session:Session_db):
+    session_default = session.exec(select (SessionModel).where(SessionModel.id==-1)).first()
+    if(session_default is None):
+        session_default = SessionModel(
+            id=-1,
+            start_time=datetime.now(),
+            end_time=datetime.now(),
+            metter_start=0,
+            metter_stop=0,
+            tag="default"
+        )
+        session.add(session_default)
+        session.commit()

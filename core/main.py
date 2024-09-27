@@ -5,7 +5,8 @@ from fastapi import FastAPI
 from api.auth.Auth_services import generate_keys
 from api.mail.email_model import Email_model
 from api.transaction.Transaction_models import Session_create, Session_update
-from api.transaction.Transaction_service import create_session_service, update_session_service_on_stopTransaction
+from api.transaction.Transaction_service import create_session_service, update_session_service_on_stopTransaction, \
+    create_default_transaction
 from api.users.UserServices import create_default_admin_usergroup
 from core.database import init_db, get_session
 # router
@@ -26,6 +27,7 @@ def on_startup():
     init_db()
     session = next(get_session())
     create_default_admin_usergroup(session)
+    create_default_transaction(session)
     # generate_keys()
 
 # ROUTES
@@ -50,9 +52,21 @@ app.include_router(routers)
 # # create_session_service(session=next(get_session()), session_data=session_data)
 #
 # session_update_data = Session_update(
-#     end_time="2023-10-10 10:00:00",
-#     metter_stop=20,
-#     transaction_id=1
+#     end_time="2024-09-23 14:25:09.792000",
+#     metter_stop=58,
+#     transaction_id=2
+# )
+# print(update_session_service_on_stopTransaction(session=next(get_session()), session_data=session_update_data))
+# session_update_data = Session_update(
+#     end_time="2024-09-26 07:29:43.537295",
+#     metter_stop=15,
+#     transaction_id=3
+# )
+# print(update_session_service_on_stopTransaction(session=next(get_session()), session_data=session_update_data))
+# session_update_data = Session_update(
+#     end_time="2024-09-26 10:56:04.555303",
+#     metter_stop=79,
+#     transaction_id=4
 # )
 # print(update_session_service_on_stopTransaction(session=next(get_session()), session_data=session_update_data))
 

@@ -1,12 +1,13 @@
+from typing import Optional
+
 from pydantic import BaseModel
 class Rfid_create(BaseModel):
     rfid: str
     user_id: int
 
 class Rfid_update(BaseModel):
-    rfid:str
-    user_id: int
-    id:int
+    rfid:Optional[str]=None
+    user_id: Optional[int]=None
 
 class Rfid_data(BaseModel):
     id: int
