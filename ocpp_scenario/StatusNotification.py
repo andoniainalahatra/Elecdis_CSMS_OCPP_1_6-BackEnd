@@ -10,7 +10,7 @@ from ocpp_scenario.Connexion_rabbit import Connexion_rabbit
 import logging
 from api.Connector.Connector_services import create_connector,update_connector_status
 from api.Connector.Connector_models import Connector_create,Connector_update
-from api.CP.CP_services import read_detail_cp
+from api.CP.CP_services import read_detail_cp,read_detail_cp_update
 from core.database import get_session
 
 logging.basicConfig(level=logging.INFO)
@@ -22,7 +22,7 @@ class StatusNotification:
         charge_point_id = charge_point_instance.id
         session=next(get_session())
         try:
-            result=read_detail_cp(charge_point_id,session)
+            result=read_detail_cp_update(charge_point_id,session)
             existing_connectors = [row['id_connecteur'] for row in result]
             #logging.info(f"ChargePoint ID: {charge_point_id}")
             #logging.info(existing_connectors)
