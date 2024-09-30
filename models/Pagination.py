@@ -1,11 +1,10 @@
-from pydantic import BaseModel,Field
+from pydantic import BaseModel, Field
 
 
 class Pagination(BaseModel):
     page: int = Field(1, description="Current page number")
     limit: int = Field(50, description="Number of items per page")
     total_items: int = Field(0, description="Total number of items")
-
 
     @property
     def offset(self) -> int:
@@ -33,3 +32,8 @@ class Pagination(BaseModel):
             "has_previous": self.has_previous
         })
         return data
+
+
+class Data_display(BaseModel):
+    data: list
+    pagination: Pagination

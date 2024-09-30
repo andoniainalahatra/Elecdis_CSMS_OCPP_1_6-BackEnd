@@ -3,6 +3,9 @@ import os
 from fastapi import UploadFile
 import io
 import csv
+from pydantic import BaseModel
+
+from models.Pagination import Pagination
 
 DELETED_STATE = 0
 DEFAULT_STATE = 1
@@ -10,6 +13,7 @@ DEFAULT_USER_PASSWORD = "password"
 ADMIN_NAME='admin'
 
 FILE_PATH=os.path.dirname(os.path.abspath(__file__))
+
 
 async def get_datas_from_csv(file: UploadFile):
     json_data = []

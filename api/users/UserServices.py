@@ -5,6 +5,8 @@ from typing import List, Optional
 import bcrypt
 from fastapi import Depends
 
+from api.transaction.Transaction_models import Session_data_affichage, Transaction_details
+# from api.transaction.Transaction_service import get_list_session_data_2
 # from api.auth.UserAuthentification import validate_user, get_password_hash
 from core.database import get_session
 from core.utils import *
@@ -162,12 +164,49 @@ def get_user_data(user):
 
 def get_user_sessions_list(user, session: Session, page: int = 1, number_items: int = 50):
     pagination = Pagination(page=page, limit=number_items)
-    total_items = session.exec(
-        session.exec(select(func.count(SessionModel.id)).where(SessionModel.user_id == user.id))).one()
+    total_items = session.exec(select(func.count(SessionModel.id)).where(SessionModel.user_id == user.id)).one()
     pagination.total_items = total_items
     sessionLists: List[SessionModel] = session.exec(select(SessionModel).where(SessionModel.user_id == user.id)).all()
-    return {"data": sessionLists, "pagination": pagination.dict()}
+    return {"data": get_list_session_data(sessionLists,session), "pagination": pagination.dict()}
 
+def get_sums_transactions(session:Session, session_id:int):
+    sum = session.exec(
+        select(
+            func.sum(Transaction.total_price),
+            Transaction.currency,
+            Transaction.energy_unit
+        ).where(
+            Transaction.session_id == session_id
+        ).group_by(
+            Transaction.currency,
+            Transaction.energy_unit
+        )
+    ).one()
+    result_dict = Transaction_details(
+        total_price= sum[0],
+        currency=sum[1],
+        energy_unit= sum[2])
+
+    return result_dict
+def get_session_data(session:SessionModel, session_db:Session):
+
+    transaction_datas = get_sums_transactions(session_db, session.id)
+    data=Session_data_affichage(
+        id=session.id,
+        start_time=session.start_time,
+        end_time=session.end_time,
+        connector_id=session.connector_id,
+        user_id=session.user_id,
+        user_name=session.user.first_name + " "+session.user.last_name,
+        consumed_energy=f'{session.metter_stop-session.metter_start} {transaction_datas.energy_unit}',
+        rfid=session.tag,
+        charge_point_id=session.connector.charge_point_id,
+        total_cost=f'{transaction_datas.total_price} {transaction_datas.currency}',
+    )
+    return data
+
+def get_list_session_data (sessions:List[SessionModel], session_db:Session):
+    return [get_session_data(session,session_db) for session in sessions]
 
 def get_user_transactions_list(user, session, page: int = 1, number_items: int = 50):
     pagination = Pagination(page=page, limit=number_items)

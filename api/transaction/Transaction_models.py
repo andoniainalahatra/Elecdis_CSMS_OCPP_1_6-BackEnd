@@ -15,6 +15,7 @@ class Session_update(BaseModel):
     end_time: Optional[datetime]
     metter_stop: Optional[float]
     transaction_id: int
+    reason: Optional[str]=""
 
 class Session_list_model(BaseModel):
     id: int=None
@@ -31,16 +32,17 @@ class Session_list_model(BaseModel):
     currency: Optional[str]=None
 
 class Session_data_affichage(BaseModel):
-    id: int
-    start_time: Optional[datetime]
-    end_time: Optional[datetime]
-    connector_id: str
-    user_id: int
-    user_name: str
-    consumed_energy: Optional[str]
-    rfid:str
-    charge_point_id: int
-    total_cost: Optional[str]
+    id: Optional[int]=None
+    start_time: Optional[datetime]=None
+    end_time: Optional[datetime]=None
+    connector_id: str=None
+    user_id: int=None
+    user_name: str=""
+    consumed_energy: Optional[str]="0"
+    rfid:str=""
+    charge_point_id: int=None
+    total_cost: Optional[str]="0"
+    statuts: Optional[str]=""
 
 class Transaction_details(BaseModel):
     total_price: Optional[float]=None

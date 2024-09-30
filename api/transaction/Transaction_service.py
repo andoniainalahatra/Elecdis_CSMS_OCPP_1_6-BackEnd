@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import List
 
-from sqlmodel import Session as Session_db, select,func
+from sqlmodel import Session as Session_db, select,func,case
 
 from core.database import get_session
-from models.Pagination import Pagination
+from models.Pagination import Pagination, Data_display
 from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction
 from api.transaction.Transaction_models import Session_create, Session_update, Session_list_model, Transaction_details, \
     Session_data_affichage
@@ -52,6 +52,7 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
         raise {"message": f"Session with id {session_data.transaction_id} not found."}
     session_model.end_time = session_data.end_time
     session_model.metter_stop = session_data.metter_stop
+    session_model.reason = session_data.reason
     session_model.updated_at=datetime.now()
     session.add(session_model)
     session.flush()
@@ -86,7 +87,15 @@ def get_current_sessions(session:Session_db, pagination:Pagination):
         order_by(SessionModel.id).
         offset(pagination.offset).
         limit(pagination.limit)).all()
-    return {"data":get_list_session_data(sessions), "pagination":pagination.dict()}
+    return {"data":get_list_session_data_2(sessions=sessions,session_db=session), "pagination":pagination.dict()}
+def get_done_sessions(session:Session_db, pagination:Pagination):
+    pagination.total_items=count_current_session(session)
+    sessions = session.exec( select(SessionModel).
+        where(SessionModel.end_time != None).
+        order_by(SessionModel.id).
+        offset(pagination.offset).
+        limit(pagination.limit)).all()
+    return {"data":get_list_session_data_2(sessions=sessions,session_db=session), "pagination":pagination.dict()}
 
 def get_session_by_id(session:Session_db, id:int):
     session_model: SessionModel = session.exec(select(SessionModel).where(SessionModel.id == id)).first()
@@ -127,21 +136,43 @@ def get_session_data(session:SessionModel):
 def get_list_session_data (sessions:List[SessionModel]):
     return [get_session_data(session) for session in sessions]
 
+def get_status_session(session:Session_db, session_id:int):
+    query = select(
+        case(
+            (SessionModel.end_time.is_(None), 'en cours'),
+            else_='terminé'
+        ).label("end_time_status")
+    ).where(SessionModel.id == session_id)
+
+    results = session.exec(query).first()
+    return results
+
 def get_session_data_2(session:SessionModel, session_db:Session_db):
 
     transaction_datas = get_sums_transactions(session_db, session.id)
-    data=Session_data_affichage(
-        id=session.id,
-        start_time=session.start_time,
-        end_time=session.end_time,
-        connector_id=session.connector_id,
-        user_id=session.user_id,
-        user_name=session.user.first_name + " "+session.user.last_name,
-        consumed_energy=f'{session.metter_stop-session.metter_start} {transaction_datas.energy_unit}',
-        rfid=session.tag,
-        charge_point_id=session.connector.charge_point_id,
-        total_cost=f'{transaction_datas.total_price} {transaction_datas.currency}',
-    )
+    user=get_user_by_tag(session_db,session.tag)
+    data={}
+    status=get_status_session(session_db,session.id)
+    print(status)
+    if session.metter_stop is not None and session.metter_start is not None:
+        consumed_energy = session.metter_stop - session.metter_start
+    else :
+        consumed_energy = 0
+    if session is not None and user is not None:
+        data=Session_data_affichage(
+            id=session.id,
+            start_time=session.start_time,
+            end_time=session.end_time,
+            connector_id=session.connector_id,
+            user_id=session.user_id,
+            user_name=user.first_name + " "+user.last_name,
+            consumed_energy=f'{consumed_energy} {transaction_datas.energy_unit}',
+            rfid=session.tag,
+            charge_point_id=session.connector.charge_point_id,
+            total_cost=f'{transaction_datas.total_price} {transaction_datas.currency}',
+            statuts=status
+        )
+
     return data
 
 def get_list_session_data_2 (sessions:List[SessionModel], session_db:Session_db):
@@ -159,8 +190,14 @@ def get_sums_transactions(session:Session_db, session_id:int):
             Transaction.currency,
             Transaction.energy_unit
         )
-    ).one()
-    result_dict = Transaction_details(
+    ).first()
+    if sum is None:
+        result_dict = Transaction_details(
+            total_price=0,
+            currency="",
+            energy_unit="")
+    else :
+        result_dict = Transaction_details(
             total_price= sum[0],
             currency=sum[1],
             energy_unit= sum[2])
@@ -200,3 +237,11 @@ def create_default_transaction(session:Session_db):
         )
         session.add(session_default)
         session.commit()
+
+def get_transactions_details_by_session(session_db:Session_db, session_id:int, page:int, number_items:int):
+    paginations = Pagination(page=page, limit=number_items)
+    count = session_db.exec(select(func.count(Transaction.id)).where(Transaction.session_id == session_id)).one()
+    transactions = session_db.exec(select(Transaction).where(Transaction.session_id == session_id).offset(paginations.offset).limit(paginations.limit)).all()
+    paginations.total_items = count
+    datas=Data_display(data=transactions, pagination=paginations)
+    return datas
