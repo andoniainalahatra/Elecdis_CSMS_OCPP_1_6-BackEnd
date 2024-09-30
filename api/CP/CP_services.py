@@ -55,7 +55,7 @@ def update_cp_status(id_cp:str,cp:Cp_update,session : Session):
         raise Exception(f"CP  with id {id_cp} does not exist.")
     
     charge.status=cp.status
-    charge.updated_at=cp.time
+    charge.updated_at=cp.time+ timedelta(hours=3)
     session.add(charge)
     session.commit()
     session.refresh(charge)
