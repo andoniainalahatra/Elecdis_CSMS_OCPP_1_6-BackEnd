@@ -14,6 +14,7 @@ from api.Connector.Connector_services import update_connector_status
 from api.Connector.Connector_models import Connector_update
 from api.CP.CP_services import read_detail_cp
 from core.database import get_session
+from ocpp_scenario.TriggerMessage import *
 logging.basicConfig(level=logging.INFO)
 import pytz
 from core.config import *
@@ -27,6 +28,15 @@ class Heartbeat:
     
     async def on_heartbeat(self, charge_point_instance, **kwargs):
         charge_point_id = charge_point_instance.id
+        session=next(get_session())
+        result = read_detail_cp(charge_point_id, session)
+        if isinstance(result, list) and len(result) > 0:
+            status_charge_point = result[0].get('status_charge_point', None)
+            if status_charge_point == StatusEnum.unavailable:
+                await TriggerMessage().on_trigger_message('BootNotification',charge_point_id)
+                await TriggerMessage().on_trigger_message('StatusNotification',charge_point_id)
+
+                
         return{
             "currentTime": datetime.now(timezone).isoformat()
         }

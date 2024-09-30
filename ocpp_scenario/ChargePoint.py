@@ -40,8 +40,8 @@ class ChargePoint(cp):
 
            
             self.heartbeat_count = 0
-            self.min_heartbeats = 2
-            self.timeout = timedelta(seconds=25)
+            self.min_heartbeats = 10
+            self.timeout = timedelta(seconds=100)
             self.monitoring_task = None
             self.lock = asyncio.Lock()
             self.last_heartbeat_time = datetime.now()
@@ -65,29 +65,30 @@ class ChargePoint(cp):
 
     async def monitor_heartbeats(self):
         while True:
-            await asyncio.sleep(1) 
+            await asyncio.sleep(102)  
             async with self.lock:
                 elapsed_time = datetime.now() - self.last_heartbeat_time
-                if elapsed_time > self.timeout:
-                    if self.heartbeat_count < self.min_heartbeats:
-                        logging.warning(f"Less than {self.min_heartbeats} heartbeats received in {self.timeout.seconds} seconds for {self.id}. Sending stop message.")
-                        await self.stop_charge_point()
-                        break  
-                    else:
-                        logging.info(f"Received sufficient heartbeats for {self.id}: {self.heartbeat_count}. Resetting count for next period.")
+                if self.heartbeat_count >= self.min_heartbeats:
+                    logging.info(f"Received sufficient heartbeats for {self.id}: {self.heartbeat_count}. Resetting count for next period.")
+                    self.heartbeat_count = 0  
+                else:
+                    logging.warning(f"Less than 2 heartbeats received in 102 seconds for {self.id}. Sending stop message.")
+                    await self.stop_charge_point()
+                    break  #
 
-                    self.heartbeat_count = 0
-
-        
+            
         self.monitoring_task = None
+
+
+
 
     async def stop_charge_point(self):
         session=next(get_session())
         try:
-            charge=Cp_update(status=StatusEnum.unavailable,time=datetime.now(timezone))
+            charge=Cp_update(status=StatusEnum.unavailable,time=datetime.now())
             update_cp_status(id_cp=self.id,cp=charge,session=session)
             result = read_detail_cp(self.id, session)
-            conne=Connector_update(status=StatusEnum.unavailable,time=datetime.now(timezone))
+            conne=Connector_update(status=StatusEnum.unavailable,time=datetime.now()+timedelta(hours=3))
             for row in result:
                 update_connector_status(row['id_connecteur'], conne, session)
             
