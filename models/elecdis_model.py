@@ -17,6 +17,7 @@ class StatusEnum(str, Enum):
     charging="charging"
 
 
+
 def get_current_time_plus_3_hours() -> datetime:
     return datetime.utcnow() + timedelta(hours=3)
 class TimestampMixin(SQLModel):
@@ -216,11 +217,12 @@ class Session(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     start_time: Optional[datetime]=None
     end_time: Optional[datetime]=None
-    connector_id: str = Field(foreign_key="connector.id")
-    user_id: int = Field(foreign_key="user_table.id")
+    connector_id: Optional[str] = Field(default=None,foreign_key="connector.id")
+    user_id: Optional[int] = Field(default=None,foreign_key="user_table.id")
     metter_start: Optional[float]
     metter_stop: Optional[float]
     tag:Optional[str]
+    reason:Optional[str]
 
     connector: Optional["Connector"] = Relationship(back_populates="sessions")
     user: Optional["User"] = Relationship(back_populates="sessions")

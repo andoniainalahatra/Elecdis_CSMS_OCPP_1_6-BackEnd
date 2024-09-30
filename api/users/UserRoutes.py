@@ -51,16 +51,13 @@ async def get_All_current_user_sessions(token: str = Depends(oauth_2_scheme), se
 
 
 @router.get("/current/transactions")
-async def get_All_curren_user_transactions(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+async def get_All_current_user_transactions(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
     return get_user_transactions_list(user=await get_current_user(session, token), session=session , page=page, number_items=number_items)
 
-@router.get("/sessions/{user_id}")
-async def get_all_user_sessions_by_user_id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
-    return get_user_sessions_list(user=await get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
-
 @router.get("/transactions/{user_id}")
-async def get_all_user_transactions_by_user_id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
-    return get_user_transactions_list(user=await get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
+async def get_all_user_sessions_by_user_id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    return get_user_sessions_list(user=get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
+
 
 @router.get("/current/tags")
 def get_all_current_user_tags(token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session), user: UserData = Depends(get_current_user), page:Optional[int]=1, number_items:Optional[int]=50):
@@ -82,22 +79,22 @@ def get_current_user_profile(
 @router.get("/profile/{user_id}")
 def get_user_profile_by_id(user_id: int, session: Session = Depends(get_session)):
     user = get_user_by_id(user_id, session)
-    transactions = get_user_transactions_list(user, session)
-    sessions = get_user_sessions_list(user, session)
-    return {"user": user, "transactions": transactions, "sessions": sessions}
+    return {"user": get_user_data(user)}
 
-@router.put("/profile")
-def update_user_profile(user_to_update: UserUpdate, token: str = Depends(oauth_2_scheme), session: Session = Depends(get_session)):
+@router.put("/profile/{id}")
+def update_user_profile(user_to_update:UserUpdate,id:int,
+                        # token: str = Depends(oauth_2_scheme),
+                        session: Session = Depends(get_session)):
     try :
-        update_user(user_to_update, session)
+        update_user(user_to_update, session,id)
     except Exception as e:
         raise HTTPException(status_code= status.HTTP_400_BAD_REQUEST, detail=str(e))
     return {"message": "User updated successfully"}
 
 # @router.post
 @router.get("/{id}")
-def get_user_by_id(id: int, session: Session = Depends(get_session)):
-        user = session.exec(select(User).where(User.id == id)).first()
+def get_user_by_id_route(id: int, session: Session = Depends(get_session)):
+        user = get_user_by_id(id, session)
         if user is None:
             raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="User not found")
         return user
