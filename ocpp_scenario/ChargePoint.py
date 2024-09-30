@@ -4,28 +4,97 @@ from datetime import datetime
 from ocpp.routing import on
 from ocpp.v16 import ChargePoint as cp
 import logging
+from models.elecdis_model import StatusEnum
 from ocpp.exceptions import OCPPError
+from datetime import datetime, timedelta
 logging.basicConfig(level=logging.INFO)
+from api.CP.CP_services import update_cp_status
+from api.CP.CP_models import Cp_update
+from api.Connector.Connector_services import update_connector_status
+from api.Connector.Connector_models import Connector_update
+from api.CP.CP_services import read_detail_cp
+from core.database import get_session
+import pytz
+from core.config import *
+timezone = pytz.timezone(TIME_ZONE)
 class ChargePoint(cp):
-    def __init__(self,charge_point_id,connection,boot_notification_scenario,heartbeat_scenario,statusnotification_scenario,start_scenario,stop_scenario,authorize,meter_value_scenario):
-        super().__init__(charge_point_id,connection)
-        self.boot_notification_scenario = boot_notification_scenario
-        self.heartbeat_scenario=heartbeat_scenario
-        self.statusnotification_scenario=statusnotification_scenario
-        self.start_scenario=start_scenario
-        self.stop_scenario=stop_scenario
-        self.authorize=authorize
-        self.meter_value_scenario=meter_value_scenario
-    
-        
+    instances = {}  
+
+    def __new__(cls, charge_point_id, *args, **kwargs):
+        if charge_point_id not in cls.instances:
+            instance = super(ChargePoint, cls).__new__(cls)
+            cls.instances[charge_point_id] = instance
+        return cls.instances[charge_point_id]
+
+    def __init__(self, charge_point_id, connection, boot_notification_scenario, heartbeat_scenario,
+                 statusnotification_scenario, start_scenario, stop_scenario, authorize, meter_value_scenario):
+        if not hasattr(self, 'initialized'): 
+            super().__init__(charge_point_id, connection)
+            self.boot_notification_scenario = boot_notification_scenario
+            self.heartbeat_scenario = heartbeat_scenario
+            self.statusnotification_scenario = statusnotification_scenario
+            self.start_scenario = start_scenario
+            self.stop_scenario = stop_scenario
+            self.authorize = authorize
+            self.meter_value_scenario = meter_value_scenario
+
+           
+            self.heartbeat_count = 0
+            self.min_heartbeats = 2
+            self.timeout = timedelta(seconds=25)
+            self.monitoring_task = None
+            self.lock = asyncio.Lock()
+            self.last_heartbeat_time = datetime.now()
+
+            self.initialized = True
 
     #@on(Action.BootNotification)
     async def on_bootnotification(self,chargePointVendor,chargePointModel,**kwargs):
         return await self.boot_notification_scenario.on_bootnotification(self,chargePointVendor, chargePointModel, **kwargs)
     
     #@on(Action.Heartbeat)
-    async def on_heartbeat(self,**kwargs):
-        return  await self.heartbeat_scenario.on_heartbeat(self,**kwargs)
+    async def on_heartbeat(self, **kwargs):
+        async with self.lock:
+            self.heartbeat_count += 1
+            self.last_heartbeat_time = datetime.now()
+            logging.info(f"Heartbeat received for {self.id}. Count: {self.heartbeat_count}")
+            if self.monitoring_task is None:
+                self.monitoring_task = asyncio.create_task(self.monitor_heartbeats())
+
+        return await self.heartbeat_scenario.on_heartbeat(self, **kwargs)
+
+    async def monitor_heartbeats(self):
+        while True:
+            await asyncio.sleep(1) 
+            async with self.lock:
+                elapsed_time = datetime.now() - self.last_heartbeat_time
+                if elapsed_time > self.timeout:
+                    if self.heartbeat_count < self.min_heartbeats:
+                        logging.warning(f"Less than {self.min_heartbeats} heartbeats received in {self.timeout.seconds} seconds for {self.id}. Sending stop message.")
+                        await self.stop_charge_point()
+                        break  
+                    else:
+                        logging.info(f"Received sufficient heartbeats for {self.id}: {self.heartbeat_count}. Resetting count for next period.")
+
+                    self.heartbeat_count = 0
+
+        
+        self.monitoring_task = None
+
+    async def stop_charge_point(self):
+        session=next(get_session())
+        try:
+            charge=Cp_update(status=StatusEnum.unavailable,time=datetime.now(timezone))
+            update_cp_status(id_cp=self.id,cp=charge,session=session)
+            result = read_detail_cp(self.id, session)
+            conne=Connector_update(status=StatusEnum.unavailable,time=datetime.now(timezone))
+            for row in result:
+                update_connector_status(row['id_connecteur'], conne, session)
+            
+        except Exception as e:
+            session.rollback() 
+            logging.error(f"rollback: {e}")
+        
     
     #@on(Action.StatusNotification)
     async def on_statusnotification(self, connectorId, errorCode, status, **kwargs):
