@@ -28,7 +28,6 @@ class StopTransaction:
               reason=reason
        )
        transaction= update_session_service_on_stopTransaction(session=next(get_session()), session_data=session_update_data)
-       logging.info(f"Transaction:{transaction}")
        return {
             "idTagInfo":{'status':'Accepted'},
         }
