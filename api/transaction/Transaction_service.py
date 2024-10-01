@@ -245,3 +245,23 @@ def get_transactions_details_by_session(session_db:Session_db, session_id:int, p
     paginations.total_items = count
     datas=Data_display(data=transactions, pagination=paginations)
     return datas
+
+def get_transactions_by_user_id(user_id:int, session:Session_db, page:int, number_items:int):
+    paginations = Pagination(page=page, limit=number_items)
+    count = session.exec(select(func.count(SessionModel.id)).where(SessionModel.user_id == user_id)).one()
+    transactions = session.exec(select(SessionModel).where(SessionModel.user_id == user_id).offset(paginations.offset).limit(paginations.limit)).all()
+    paginations.total_items = count
+    datas=Data_display(data=get_list_session_data_2(transactions,session_db=session), pagination=paginations)
+    return datas
+
+def get_transactions_by_user_tags(user_tag:str, session:Session_db, page:int, number_items:int):
+    paginations = Pagination(page=page, limit=number_items)
+    print("hoho")
+
+    count = session.exec(select(func.count(SessionModel.id)).where(SessionModel.tag == user_tag)).one()
+    print(session.exec(select(SessionModel).where(SessionModel.tag == user_tag)))
+    print("hehe")
+    transactions = session.exec(select(SessionModel).where(SessionModel.tag == user_tag).offset(paginations.offset).limit(paginations.limit)).all()
+    paginations.total_items = count
+    datas=Data_display(data=get_list_session_data_2(transactions,session_db=session), pagination=paginations)
+    return datas

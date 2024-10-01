@@ -168,7 +168,12 @@ def get_user_sessions_list(user, session: Session, page: int = 1, number_items: 
     total_items = session.exec(select(func.count(SessionModel.id)).where(SessionModel.user_id == user.id)).one()
     pagination.total_items = total_items
     sessionLists: List[SessionModel] = session.exec(select(SessionModel).where(SessionModel.user_id == user.id)).all()
-    return {"data": get_list_session_data(sessionLists,session), "pagination": pagination.dict()}
+    try:
+        datas = get_list_session_data(sessionLists,session)
+    except Exception as e:
+        print(e)
+        datas=[]
+    return {"data": datas, "pagination": pagination.dict()}
 
 def get_sums_transactions(session:Session, session_id:int):
     sum = session.exec(
@@ -191,7 +196,11 @@ def get_sums_transactions(session:Session, session_id:int):
     return result_dict
 def get_session_data(session:SessionModel, session_db:Session):
 
-    transaction_datas = get_sums_transactions(session_db, session.id)
+    try:
+        transaction_datas = get_sums_transactions(session_db, session.id)
+    except Exception as e:
+        print("eto",e)
+        transaction_datas = Transaction_details()
     data=Session_data_affichage(
         id=session.id,
         start_time=session.start_time,
@@ -207,6 +216,8 @@ def get_session_data(session:SessionModel, session_db:Session):
     return data
 
 def get_list_session_data (sessions:List[SessionModel], session_db:Session):
+    if len(sessions)==0:
+        return []
     return [get_session_data(session,session_db) for session in sessions]
 
 def get_user_transactions_list(user, session, page: int = 1, number_items: int = 50):

@@ -45,6 +45,6 @@ class Session_data_affichage(BaseModel):
     statuts: Optional[str]=""
 
 class Transaction_details(BaseModel):
-    total_price: Optional[float]=None
-    currency: Optional[str]=None
-    energy_unit: Optional[str]=None
+    total_price: Optional[float]=0
+    currency: Optional[str]=""
+    energy_unit: Optional[str]=""
