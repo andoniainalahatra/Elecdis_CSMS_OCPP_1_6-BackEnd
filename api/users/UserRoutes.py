@@ -19,10 +19,10 @@ def search_user(
 def get_list_client(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
         session: Session=Depends(get_session),
-        page_number: Optional[int] = 1,
+        page: Optional[int] = 1,
         number_items: Optional[int] = 50
 ):
-    return get_all_clients(session=session,page=page_number, number_items=number_items)
+    return get_all_clients(session=session,page=page, number_items=number_items)
 
 @router.get("/")
 def get_all(
@@ -36,10 +36,10 @@ def get_admin(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
 
         session: Session=Depends(get_session),
-        page_number: Optional[int] = 1,
+        page: Optional[int] = 1,
         number_items: Optional[int] = 50
 ):
-    return get_all_Admins(session=session,page=page_number, item_numbers=number_items)
+    return get_all_Admins(session=session,page=page, item_numbers=number_items)
 
 @router.get("/current")
 async def get_current_user_api(token: str = Depends(oauth_2_scheme), session: Session=Depends(get_session)):

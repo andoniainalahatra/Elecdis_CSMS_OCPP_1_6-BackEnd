@@ -20,13 +20,14 @@ from passlib.context import CryptContext
 
 class UserData(BaseModel):
     id: int
-    first_name: str
-    last_name: str
+    first_name: Optional[str]=""
+    last_name: Optional[str]=""
     email: str
     role: str
-    phone: str
+    phone: Optional[str]=""
     subscription: Optional[str]
     partner: Optional[str]
+
 
 
 class UserUpdate(BaseModel):

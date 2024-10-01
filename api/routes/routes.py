@@ -9,8 +9,10 @@ from api.subscription.Subscription_routes import router as subscription_routes
 from api.userGroup.userGroup_routes import router as userGroup_routes
 from api.tarifs.Tarifs_routes import router as tarifs_routes
 from api.trigger.Trigger_messages_routes import router as trigger_routes
+from api.Configuration.Configuration_routes import router as configuration_routes, possible_keys
 routers = APIRouter()
 
+config_description = str(possible_keys)
 routers.include_router(user_routes, prefix="/users", tags=["Users"])
 routers.include_router(rfid_routes, prefix="/rfid", tags=["RFID"])
 routers.include_router(auth_routes, prefix="/auth", tags=["Authentifications"])
@@ -21,3 +23,4 @@ routers.include_router(subscription_routes, prefix="/subscription", tags=["subsc
 routers.include_router(userGroup_routes, prefix="/user_group", tags=["user_group"])
 routers.include_router(tarifs_routes, prefix="/tarifs", tags=["tarifs"])
 routers.include_router(trigger_routes, prefix="/trigger_routes", tags=["trigger_routes"])
+routers.include_router(configuration_routes, prefix="/configuration", tags=["Charge Point Configuration"] )
