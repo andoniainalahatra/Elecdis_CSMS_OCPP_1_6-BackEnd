@@ -6,7 +6,6 @@ from ocpp.v16.enums import Action, RegistrationStatus
 from ocpp.v16 import call_result
 from propan import apply_types
 import logging
-from api.CP.CP_models import Cp_update
 from api.CP.CP_services import update_cp_status
 from api.Connector.Connector_models import Connector_update
 from models.elecdis_model import StatusEnum

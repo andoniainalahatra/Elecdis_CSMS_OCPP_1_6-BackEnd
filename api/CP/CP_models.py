@@ -16,10 +16,14 @@ class Cp_create(BaseModel):
     
 
 class Cp_update(BaseModel):
+    serial_number:Optional[str]=None
     charge_point_model:Optional[str]=None
     charge_point_vendors:Optional[str]=None
     status:Optional[str]=None
-    time:Optional[datetime]=datetime.now
+    adresse:Optional[str]=None
+    longitude:Optional[float]=0
+    latitude:Optional[float]=0
+    time:Optional[datetime]=None
 class Cp_form(BaseModel):
     id: str
     serial_number : str
