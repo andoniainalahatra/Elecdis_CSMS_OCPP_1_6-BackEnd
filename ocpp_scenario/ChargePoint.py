@@ -40,8 +40,9 @@ class ChargePoint(cp):
 
            
             self.heartbeat_count = 0
-            self.min_heartbeats = 10
-            self.timeout = timedelta(seconds=100)
+            self.min_heartbeats = int(MIN_HEARTBEAT)
+            self.time=self.min_heartbeats*int(HEARTBEAT_INTERVAL)
+            self.timeout = timedelta(seconds=self.time)
             self.monitoring_task = None
             self.lock = asyncio.Lock()
             self.last_heartbeat_time = datetime.now()
@@ -65,7 +66,7 @@ class ChargePoint(cp):
 
     async def monitor_heartbeats(self):
         while True:
-            await asyncio.sleep(102)  
+            await asyncio.sleep(self.time+62)  
             async with self.lock:
                 elapsed_time = datetime.now() - self.last_heartbeat_time
                 if self.heartbeat_count >= self.min_heartbeats:
@@ -74,6 +75,7 @@ class ChargePoint(cp):
                 else:
                     logging.warning(f"Less than 2 heartbeats received in 102 seconds for {self.id}. Sending stop message.")
                     await self.stop_charge_point()
+                    self.heartbeat_count = 0
                     break  #
 
             

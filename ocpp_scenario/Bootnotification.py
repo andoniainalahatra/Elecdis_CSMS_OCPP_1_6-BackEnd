@@ -7,7 +7,7 @@ from ocpp.v16.enums import Action, RegistrationStatus
 from ocpp.v16 import call_result
 from propan import apply_types
 import logging
-from api.CP.CP_services import update_cp,create_cp,read_cp
+from api.CP.CP_services import update_cp_boot,create_cp,read_cp
 from api.CP.CP_models import Cp_update,Cp_create
 from models.elecdis_model import StatusEnum
 from core.database import get_session
@@ -34,13 +34,13 @@ class BootNotification:
                 create_cp(charge,session)
             else:
                 charge=Cp_update(charge_point_model=chargePointModel,charge_point_vendors=chargePointVendor,status=StatusEnum.available,time=datetime.now())
-                update_cp(charge_point_id,charge,session)
+                update_cp_boot(charge_point_id,charge,session)
         except Exception as e:
            session.rollback() 
            logging.error(f"rollback: {e}") 
         return {
             "currentTime":datetime.now(timezone).isoformat(),
-            "interval":10,
+            "interval":int(HEARTBEAT_INTERVAL),
             "status":RegistrationStatus.accepted
         }
     
