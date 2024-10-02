@@ -160,7 +160,7 @@ def get_by_tag(session: Session, tag: str):
 def get_rdif_by_id(session: Session, id: int):
     return get_rfid_data(session.exec(select(Tag).where(Tag.id == id, Tag.state!=DELETED_STATE )).first())
 def get_user_by_tag(session : Session, tag : str):
-    tag = get_by_tag(session,tag)
+    tag = session.exec(select(Tag).where(Tag.tag == tag )).first()
     if tag is None:
         return None
     return tag.user

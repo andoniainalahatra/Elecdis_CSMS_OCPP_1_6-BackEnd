@@ -97,7 +97,7 @@ def get_user_by_id_route(id: int, session: Session = Depends(get_session)):
         user = get_user_by_id(id, session)
         if user is None:
             raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="User not found")
-        return user
+        return set_update_user_data(user)
 
 @router.get("/new_clients/")
 def get_new_clients(

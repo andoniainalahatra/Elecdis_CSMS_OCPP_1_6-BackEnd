@@ -73,7 +73,7 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
 def create_mettervalue_history(session:Session_db, session_data:SessionModel, can_commit:bool=True):
     history : Historique_metter_value = Historique_metter_value(
         real_connector_id=session_data.connector_id,
-        valeur=session_data.metter_stop-session_data.metter_start,
+        valeur=(session_data.metter_stop-session_data.metter_start)/1000,
         )
     session.add(history)
     if can_commit:
@@ -84,6 +84,7 @@ def get_current_sessions(session:Session_db, pagination:Pagination):
     pagination.total_items=count_current_session(session)
     sessions = session.exec( select(SessionModel).
         where(SessionModel.end_time == None).
+        where(SessionModel.id!=-1).
         order_by(SessionModel.id).
         offset(pagination.offset).
         limit(pagination.limit)).all()
@@ -92,6 +93,7 @@ def get_done_sessions(session:Session_db, pagination:Pagination):
     pagination.total_items=count_current_session(session)
     sessions = session.exec( select(SessionModel).
         where(SessionModel.end_time != None).
+        where(SessionModel.id!=-1).
         order_by(SessionModel.id).
         offset(pagination.offset).
         limit(pagination.limit)).all()
@@ -102,18 +104,19 @@ def get_session_by_id(session:Session_db, id:int):
     return session_model
 
 def count_current_session(session:Session_db):
-    count = session.exec(select(func.count(SessionModel.id)).where(SessionModel.end_time == None)).one()
+    count = session.exec(select(func.count(SessionModel.id)).where(SessionModel.end_time == None).where(SessionModel.id!=-1)).one()
     return count
 
 def total_session_de_charges(session:Session_db):
-    total = session.exec(select(func.count(SessionModel.id))).one()
+    total = session.exec(select(func.count(SessionModel.id)).where(SessionModel.id!=-1)).one()
     return total
 
 def get_all_session(session:Session_db, pagination:Pagination):
     pagination.total_items=total_session_de_charges(session)
-    pagination.total_items = session.exec(select(func.count(SessionModel.id))).one()
+    pagination.total_items = session.exec(select(func.count(SessionModel.id)).where(SessionModel.id!=-1)).one()
     sessions= session.exec(
         select(SessionModel).
+        where(SessionModel.id!=-1).
         order_by(SessionModel.id).
         offset(pagination.offset).
         limit(pagination.limit)).all()
@@ -151,14 +154,15 @@ def get_session_data_2(session:SessionModel, session_db:Session_db):
 
     transaction_datas = get_sums_transactions(session_db, session.id)
     user=get_user_by_tag(session_db,session.tag)
-    data={}
     status=get_status_session(session_db,session.id)
-    print(status)
+    # print(session)
+    # print(f'==> {user}')
     if session.metter_stop is not None and session.metter_start is not None:
         consumed_energy = session.metter_stop - session.metter_start
     else :
         consumed_energy = 0
     if session is not None and user is not None:
+        print(session)
         data=Session_data_affichage(
             id=session.id,
             start_time=session.start_time,
@@ -172,6 +176,8 @@ def get_session_data_2(session:SessionModel, session_db:Session_db):
             total_cost=f'{transaction_datas.total_price} {transaction_datas.currency}',
             statuts=status
         )
+    else :
+        data = Session_data_affichage()
 
     return data
 
@@ -240,8 +246,8 @@ def create_default_transaction(session:Session_db):
 
 def get_transactions_details_by_session(session_db:Session_db, session_id:int, page:int, number_items:int):
     paginations = Pagination(page=page, limit=number_items)
-    count = session_db.exec(select(func.count(Transaction.id)).where(Transaction.session_id == session_id)).one()
-    transactions = session_db.exec(select(Transaction).where(Transaction.session_id == session_id).offset(paginations.offset).limit(paginations.limit)).all()
+    count = session_db.exec(select(func.count(Transaction.id)).where(Transaction.session_id == session_id).where(SessionModel.id!=-1)).one()
+    transactions = session_db.exec(select(Transaction).where(Transaction.session_id == session_id).where(SessionModel.id!=-1).offset(paginations.offset).limit(paginations.limit)).all()
     paginations.total_items = count
     datas=Data_display(data=transactions, pagination=paginations)
     return datas
@@ -265,3 +271,4 @@ def get_transactions_by_user_tags(user_tag:str, session:Session_db, page:int, nu
     paginations.total_items = count
     datas=Data_display(data=get_list_session_data_2(transactions,session_db=session), pagination=paginations)
     return datas
+
