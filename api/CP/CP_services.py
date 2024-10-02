@@ -12,6 +12,7 @@ import json
 from core.config import *
 from ocpp_scenario.RemoteStopTransaction import RemoteStopTransaction
 from ocpp_scenario.RemoteStartTransaction import RemoteStartTransaction
+from ocpp_scenario.GetDiagnostic import GetDiagnostic
 
 
 
@@ -42,7 +43,27 @@ def update_cp(id_cp:str,cp:Cp_update,session : Session):
     charge.status=cp.status
     charge.charge_point_model=cp.charge_point_model
     charge.charge_point_vendors=cp.charge_point_vendors
-    charge.updated_at=cp.time+ timedelta(hours=3)
+    charge.updated_at=datetime.now()
+    charge.serial_number=cp.serial_number
+    charge.adresse=cp.adresse
+    charge.longitude=cp.longitude
+    charge.latitude=cp.latitude
+    session.add(charge)
+    session.commit()
+    session.refresh(charge)
+    return "Modification réussie"
+
+def update_cp_boot(id_cp:str,cp:Cp_update,session : Session):
+    
+    charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
+    if charge is None:
+        raise Exception(f"CP  with id {id_cp} does not exist.")
+    
+    charge.status=cp.status
+    charge.charge_point_model=cp.charge_point_model
+    charge.charge_point_vendors=cp.charge_point_vendors
+    charge.updated_at=cp.time+timedelta(hours=3)
+    
     session.add(charge)
     session.commit()
     session.refresh(charge)
@@ -55,7 +76,7 @@ def update_cp_status(id_cp:str,cp:Cp_update,session : Session):
         raise Exception(f"CP  with id {id_cp} does not exist.")
     
     charge.status=cp.status
-    charge.updated_at=cp.time
+    charge.updated_at=cp.time+ timedelta(hours=3)
     session.add(charge)
     session.commit()
     session.refresh(charge)
@@ -425,7 +446,32 @@ async def send_remoteStartTransaction(charge_point_id: str, idTag:str,connectorI
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send message: {e}")
-    
+
+async def send_getdiagnostic(charge_point_id: str, startTime:datetime,stopTime:datetime,path:str):
+    get=GetDiagnostic()
+    startTime_str = startTime.isoformat()
+    stopTime_str = stopTime.isoformat()
+    message = get.on_getdiagnostic(startTime=startTime_str,stopTime=stopTime_str,path=path)
+    response_json = {
+        "charge_point_id": charge_point_id,
+        "payload": message
+    }
+      
+    try:
+        connection = await aio_pika.connect_robust(CONNECTION_RABBIT)
+        async with connection:
+            channel = await connection.channel()
+            exchange = await channel.get_exchange("micro_ocpp") 
+            await exchange.publish(
+                AioPikaMessage(body=json.dumps(response_json).encode()),
+                routing_key="02"
+            )
+
+
+        return {"status": "Message sent", "response": message}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send message: {e}")
 
 def graph_conso_energie_cp(id_cp:str,session:Session,CurrentYear: int = None):
     if CurrentYear is None:
