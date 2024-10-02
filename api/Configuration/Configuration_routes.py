@@ -58,6 +58,6 @@ summary = f'Get configuration possible keys: \n \t {possible_keys}'
 async def get_configuration(key:str, charge_point_id:str):
     return await GetConfiguration().on_get_configuration(key,charge_point_id)
 
-@router.get("/change_configuration", description=summary)
+@router.post("/change_configuration", description=summary)
 async def change_configuration(key:str, value:str, charge_point_id:str):
     return await GetConfiguration().change_configuration(key,value,charge_point_id)
