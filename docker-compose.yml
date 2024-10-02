@@ -2,24 +2,24 @@ version: '3.8'
 
 services:
   #Si tu veux utiliser le serveur web dans Docker, décommenter les lignes suivantes
-  # web:
-  #    build: .
-  #    command: sh -c "alembic upgrade head && uvicorn core.main:app --host 0.0.0.0 --port 8080"
-  #    volumes:
-  #      - .:/app
-  #    ports:
-  #      - "8080:8080"
-  #    env_file:
-  #      - .env
-  #    depends_on:
-  #      elecdis-db:
-  #        condition: service_healthy
-  #      rabbitmq:
-  #        condition: service_started
-  #    networks:
-  #      - app-network
-  #    extra_hosts:
-  #      - "host.docker.internal:host-gateway"  # Ajouté pour la résolution du nom d'hôte
+  web:
+      build: .
+      command: sh -c "alembic upgrade head && uvicorn core.main:app --host 0.0.0.0 --port 8080"
+      volumes:
+        - .:/app
+      ports:
+        - "8080:8080"
+      env_file:
+        - .env
+      depends_on:
+        elecdis-db:
+          condition: service_healthy
+        rabbitmq:
+          condition: service_started
+      networks:
+        - app-network
+      extra_hosts:
+        - "host.docker.internal:host-gateway"  # Ajouté pour la résolution du nom d'hôte
 
   elecdis-db:
     image: postgres:13-alpine
@@ -42,6 +42,22 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    networks:
+      - app-network
+  
+  mongodb:
+    image: mongo:4.4
+    container_name: mongodb
+    restart: always
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: "${MONGO_INITDB_ROOT_USERNAME}"
+      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_INITDB_ROOT_PASSWORD}"
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"  # Port par défaut de MongoDB
     networks:
       - app-network
 
