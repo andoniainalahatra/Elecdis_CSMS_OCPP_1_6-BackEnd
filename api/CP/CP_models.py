@@ -13,6 +13,7 @@ class Cp_create(BaseModel):
     adresse:str
     longitude:float
     latitude:float
+    firmware_version:Optional[str]=None
     
 
 class Cp_update(BaseModel):
@@ -23,6 +24,7 @@ class Cp_update(BaseModel):
     adresse:Optional[str]=None
     longitude:Optional[float]=0
     latitude:Optional[float]=0
+    firmware_version:Optional[str]=None
     time:Optional[datetime]=None
 class Cp_form(BaseModel):
     id: str

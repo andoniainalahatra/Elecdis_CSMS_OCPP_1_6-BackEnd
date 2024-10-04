@@ -30,10 +30,10 @@ class BootNotification:
             existing_cp = [row['id'] for row in data if isinstance(row, dict)]
             #logging.info(f"CPV:{chargePointVendor}+{chargePointModel}+{charge_point_id}")
             if(charge_point_id not in existing_cp):
-                charge=Cp_create(id=charge_point_id,serial_number=charge_point_id,charge_point_model=chargePointModel,charge_point_vendors=chargePointVendor,status=StatusEnum.available,adresse="Andraharo",longitude=0,latitude=0)
+                charge=Cp_create(id=charge_point_id,serial_number=charge_point_id,charge_point_model=chargePointModel,charge_point_vendors=chargePointVendor,status=StatusEnum.available,adresse="Andraharo",longitude=0,latitude=0,firmware_version=kwargs.get("firmwareVersion"))
                 create_cp(charge,session)
             else:
-                charge=Cp_update(charge_point_model=chargePointModel,charge_point_vendors=chargePointVendor,status=StatusEnum.available,time=datetime.now())
+                charge=Cp_update(charge_point_model=chargePointModel,charge_point_vendors=chargePointVendor,status=StatusEnum.available,time=datetime.now(),firmware_version=kwargs.get("firmwareVersion"))
                 update_cp_boot(charge_point_id,charge,session)
         except Exception as e:
            session.rollback() 

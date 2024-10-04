@@ -48,6 +48,7 @@ def update_cp(id_cp:str,cp:Cp_update,session : Session):
     charge.adresse=cp.adresse
     charge.longitude=cp.longitude
     charge.latitude=cp.latitude
+    charge.firmware_version=cp.firmware_version
     session.add(charge)
     session.commit()
     session.refresh(charge)
@@ -63,6 +64,7 @@ def update_cp_boot(id_cp:str,cp:Cp_update,session : Session):
     charge.charge_point_model=cp.charge_point_model
     charge.charge_point_vendors=cp.charge_point_vendors
     charge.updated_at=cp.time+timedelta(hours=3)
+    charge.firmware_version=cp.firmware_version
     
     session.add(charge)
     session.commit()
@@ -143,7 +145,8 @@ def read_detail_cp(id_cp:str,session:Session):
             ChargePoint.adresse.label("adresse"),
             Connector.id.label("id_connecteur"),
             ChargePoint.status.label("status_charge_point"),
-            Connector.status.label("status_connector")
+            Connector.status.label("status_connector"),
+            Connector.valeur.label("energie_delivre")
         )
         .join(Connector, ChargePoint.id == Connector.charge_point_id)
         .where(Connector.charge_point_id==id_cp)
@@ -155,6 +158,7 @@ def read_detail_cp(id_cp:str,session:Session):
         {
             "id_charge_point": row.id_charge_point,
             "id_connecteur": row.id_connecteur,
+            "energie_delivre":row.energie_delivre,
             "status_charge_point": row.status_charge_point,
             "status_connector": row.status_connector,
             "charge_point_model":row.charge_point_model,
