@@ -37,6 +37,7 @@ class ChargePoint(TimestampMixin, table=True):
     latitude:float
     longitude:float
     state:int
+    firmware_version:Optional[str]
 
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
 
