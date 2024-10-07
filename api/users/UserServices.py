@@ -117,24 +117,19 @@ def get_new_clients_lists(session: Session = Depends(get_session), mois: Optiona
     query = select(User).join(UserGroup).where(
         UserGroup.name != ADMIN_NAME,
         User.state != DELETED_STATE,
-
     )
     pagination = Pagination(page=page, limit=number_items)
     total_items_query = select(func.count(User.id)).join(UserGroup).where(
         UserGroup.name != ADMIN_NAME,
         User.state != DELETED_STATE,
     )
-
     if mois != None:
-        print("mois =>", mois)
         query = query.where(text(f"EXTRACT(MONTH FROM user_table.created_at) = {mois}"))
         total_items_query = total_items_query.where(text(f"EXTRACT(MONTH FROM user_table.created_at) = {mois}"))
     if annee != None:
-        print("annee", annee)
         query = query.where(text(f"EXTRACT(YEAR FROM user_table.created_at) = {annee}"))
         total_items_query = total_items_query.where(text(f"EXTRACT(YEAR FROM user_table.created_at) = {annee}"))
     else:
-        print("else")
         query = query.where(text(f"EXTRACT(YEAR FROM user_table.created_at) = {datetime.utcnow().year}"))
         total_items_query = total_items_query.where(
             text(f"EXTRACT(YEAR FROM user_table.created_at) = {datetime.utcnow().year}"))
@@ -147,7 +142,7 @@ def get_new_clients_lists(session: Session = Depends(get_session), mois: Optiona
 
 def count_new_clients(session: Session = Depends(get_session), mois: Optional[int] = None,
                       annee: int = datetime.utcnow().year):
-    length = len(get_new_clients_lists(session, mois, annee))
+    length = len(get_new_clients_lists(session, mois, annee).get("data"))
     return length
 
 
