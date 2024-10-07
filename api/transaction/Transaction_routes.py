@@ -24,9 +24,6 @@ def get_done_session_list(session : Session = Depends(get_session),page:Optional
 def count_current_sessions(session : Session = Depends(get_session)):
     return {"count_current_session":count_current_session(session)}
 
-@router.get("/{user_id}")
-def get_charging_session_by_user_Id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
-    return get_transactions_by_user_id(user_id=user_id, session=session, page=page, number_items=number_items)
 
 @router.get("/rfid/{rfid}")
 def get_charging_session_by_rfid(rfid: str, session_db: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
@@ -45,3 +42,18 @@ def test(session: Session = Depends(get_session)):
     s=get_sums_transactions(session, 2)
     print(s)
     return s
+
+@router.get("/average_duration")
+def get_average_duration_of_sessions(session: Session = Depends(get_session)):
+    return moyenne_session_duration(session)
+
+@router.get("/heures_de_pointes")
+def get_heures_de_pointes_des_sessions(session: Session = Depends(get_session)):
+    return get_heures_de_pointes(session)
+
+@router.get("/graphes_sessions")
+def get_graphes_sessions(session: Session = Depends(get_session), date_selected:Optional[date]=datetime.now().date()):
+    return get_session_data_chart(session,date_selected)
+@router.get("/{user_id}")
+def get_charging_session_by_user_Id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    return get_transactions_by_user_id(user_id=user_id, session=session, page=page, number_items=number_items)
