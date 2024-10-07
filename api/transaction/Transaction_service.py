@@ -90,7 +90,7 @@ def get_current_sessions(session:Session_db, pagination:Pagination):
         limit(pagination.limit)).all()
     return {"data":get_list_session_data_2(sessions=sessions,session_db=session), "pagination":pagination.dict()}
 def get_done_sessions(session:Session_db, pagination:Pagination):
-    pagination.total_items=count_current_session(session)
+    pagination.total_items=count_done_sessions(session)
     sessions = session.exec( select(SessionModel).
         where(SessionModel.end_time != None).
         where(SessionModel.id!=-1).
@@ -105,6 +105,10 @@ def get_session_by_id(session:Session_db, id:int):
 
 def count_current_session(session:Session_db):
     count = session.exec(select(func.count(SessionModel.id)).where(SessionModel.end_time == None).where(SessionModel.id!=-1)).one()
+    return count
+
+def count_done_sessions(session : Session_db):
+    count = session.exec(select(func.count(SessionModel.id)).where(SessionModel.end_time != None).where(SessionModel.id!=-1)).one()
     return count
 
 def total_session_de_charges(session:Session_db):
@@ -157,12 +161,8 @@ def get_session_data_2(session:SessionModel, session_db:Session_db):
     status=get_status_session(session_db,session.id)
     # print(session)
     # print(f'==> {user}')
-    if session.metter_stop is not None and session.metter_start is not None:
-        consumed_energy = session.metter_stop - session.metter_start
-    else :
-        consumed_energy = 0
+
     if session is not None and user is not None:
-        print(session)
         data=Session_data_affichage(
             id=session.id,
             start_time=session.start_time,
@@ -170,7 +170,7 @@ def get_session_data_2(session:SessionModel, session_db:Session_db):
             connector_id=session.connector_id,
             user_id=session.user_id,
             user_name=user.first_name + " "+user.last_name,
-            consumed_energy=f'{consumed_energy} {transaction_datas.energy_unit}',
+            consumed_energy=f'{transaction_datas.consumed_energy} {transaction_datas.energy_unit}',
             rfid=session.tag,
             charge_point_id=session.connector.charge_point_id,
             total_cost=f'{transaction_datas.total_price} {transaction_datas.currency}',
@@ -189,7 +189,8 @@ def get_sums_transactions(session:Session_db, session_id:int):
         select(
             func.sum(Transaction.total_price),
             Transaction.currency,
-            Transaction.energy_unit
+            Transaction.energy_unit,
+            func.sum(Transaction.consumed_energy)
         ).where(
             Transaction.session_id == session_id
         ).group_by(
@@ -201,19 +202,23 @@ def get_sums_transactions(session:Session_db, session_id:int):
         result_dict = Transaction_details(
             total_price=0,
             currency="",
-            energy_unit="")
+            energy_unit="",
+            consumed_energy=0
+        )
     else :
         result_dict = Transaction_details(
             total_price= sum[0],
             currency=sum[1],
-            energy_unit= sum[2])
+            energy_unit= sum[2],
+            consumed_energy=sum[3]
+        )
 
     return result_dict
 def create_transaction_by_session(sessionModel:SessionModel, session_db:Session_db, can_commit:bool=True):
     tarif = get_one_tarif_from_trans_end(sessionModel.end_time, session_db)
     if tarif is None:
         raise Exception (f"message : No tarif found for session id {sessionModel.id}")
-    consumed_energy = sessionModel.metter_stop - sessionModel.metter_start
+    consumed_energy = (sessionModel.metter_stop - sessionModel.metter_start)/1000
     # need to be changed if the unit in the tariff is not the same as the unit in the session
     total_price = consumed_energy * tarif.price
     transaction = Transaction(
