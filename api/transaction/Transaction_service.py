@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import List
 
 from sqlmodel import Session as Session_db, select,func,case
@@ -276,4 +276,82 @@ def get_transactions_by_user_tags(user_tag:str, session:Session_db, page:int, nu
     paginations.total_items = count
     datas=Data_display(data=get_list_session_data_2(transactions,session_db=session), pagination=paginations)
     return datas
+
+def moyenne_session_duration(session: Session):
+    query = select(
+        func.to_char(
+            text("interval '1 second'") * func.avg(func.extract('epoch', SessionModel.end_time - SessionModel.start_time)),
+            'HH24 h MI mn SS s'
+        ).label('avg'),
+        func.to_char(
+            text("interval '1 second'") * func.min(func.extract('epoch', SessionModel.end_time - SessionModel.start_time)),
+            'HH24 h MI mn SS s'
+        ).label('min'),
+        func.to_char(
+            text("interval '1 second'") * func.max(func.extract('epoch', SessionModel.end_time - SessionModel.start_time)),
+            'HH24 h MI mn SS s'
+        ).label('max')
+    ).where(
+        SessionModel.id != -1,
+        SessionModel.end_time.isnot(None)
+    )
+    result = session.exec(query).one()
+    result_dict = {
+        "avg": result.avg,
+        "min": result.min,
+        "max": result.max
+    }
+    return result_dict
+
+def get_heures_de_pointes(session: Session):
+    query = select(
+        func.to_char(
+            func.date_trunc('hour', SessionModel.start_time),
+            'HH24:MI:SS'
+        ).label('hour')
+    ).group_by(
+        func.to_char(func.date_trunc('hour', SessionModel.start_time), 'HH24:MI:SS')
+    ).order_by(
+        func.count().desc()
+    ).where(
+        SessionModel.id != -1
+    )
+    result = session.exec(query).first()
+    print("==>",result)
+    return result
+
+def get_session_data_chart(session :Session_db, date_here:date):
+    query = text(f"""
+    (select
+         TO_CHAR(DATE_TRUNC('hour', start_time),'HH24:MI:SS') AS hour,
+         COUNT(*) AS event_count,
+         COUNT(DISTINCT user_id) as user_count
+     from session
+     where session.id != -1
+     and session.start_time:: date= '{date_here}' :: date
+     group by hour
+     order by hour)
+    union all
+    (select
+         TO_CHAR(generate_series::time, 'HH24:MI:SS') AS hour,
+         0 AS event_count,
+         0 as user_count
+     from generate_series(
+         '2023-01-01 00:00:00'::timestamp,
+         '2023-01-01 23:00:00'::timestamp,
+         '1 hour'::interval
+     ))
+    order by hour;
+    """)
+
+    with session:
+        result = session.exec(query).all()
+    result_dicts=[]
+    for i in result:
+        temp = { "label":i.hour,
+        "nombreSession":i.event_count,
+        "uniqueUsers":i.user_count
+        }
+        result_dicts.append(temp)
+    return result_dicts
 

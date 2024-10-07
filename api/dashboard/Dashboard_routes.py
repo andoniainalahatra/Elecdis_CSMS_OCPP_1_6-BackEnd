@@ -81,7 +81,7 @@ def get_total_sessions(session: Session_db = Depends(get_session) ):
     }
 
 
-@router.get("/ennergy_by_date", summary="total de l'énergie consommée en fonction d'une date")
+@router.get("/energy_by_date", summary="total de l'énergie consommée en fonction d'une date")
 def get_energy_by_date(date_selected: date, session: Session_db = Depends(get_session) ):
     return {
         "energy": total_energy_by_date(session, date_selected),
@@ -103,5 +103,5 @@ def get_total_energy_0(session: Session_db = Depends(get_session) ):
     return {
         "energy": get_total_energy(session),
         "energy_unit":get_energy_unit(session)
-
     }
+
