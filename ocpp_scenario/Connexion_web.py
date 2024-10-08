@@ -46,7 +46,7 @@ class Connexion:
                     message1 = await websocket.recv()
                     message = json.loads(message1)
                     val=Response(charge_point_id,message)
-                    logging.info(f"CP ========> CSMS {message1}")
+                    logging.info(f"CP => CSMS {message1}")
                     try:
                         if message[0] == 2:
                             await message_queue.put(val.to_dict())
