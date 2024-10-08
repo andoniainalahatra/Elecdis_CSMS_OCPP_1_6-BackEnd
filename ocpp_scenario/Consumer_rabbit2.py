@@ -28,7 +28,7 @@ class ConsumerRabbit2:
                             connexion=Connexion()
                             #await asyncio.sleep(2)
                             await connexion.send_messages(charge_point_id,payload)
-                            logging.info(f"CP <========== CSMS{payload}")
+                            logging.info(f"CP <= CSMS{payload}")
                         
                     except json.JSONDecodeError as e:
                         logging.error(f"Failed to decode JSON message: {e}")

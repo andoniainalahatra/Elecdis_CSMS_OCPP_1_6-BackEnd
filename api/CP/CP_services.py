@@ -665,6 +665,29 @@ def graph_semestriel_conso_energie(session:Session,CurrentYear: int = None):
 
     return list(semestre_data.values())
 
+def map_cp(session:Session):
+    result = session.exec(
+        select(
+            ChargePoint.id.label("id_charge_point"),
+            ChargePoint.adresse.label("adresse"),
+            ChargePoint.status.label("status_charge_point"),
+            ChargePoint.longitude.label("longitude"),
+            ChargePoint.latitude.label("latitude")
+           
+        )
+    ).all()
+    formatted_result = [
+        {
+            "id": row.id_charge_point,
+            "name": row.adresse,
+            "position":[row.longitude,row.latitude],
+            "status":row.status_charge_point
+        }
+        for row in result
+    ]
+
+    return formatted_result
+
     
 
 
