@@ -691,7 +691,7 @@ def map_cp(session:Session):
         {
             "id": row.id_charge_point,
             "name": row.adresse,
-            "position":[row.longitude,row.latitude],
+            "position":[row.latitude,row.longitude],
             "status":row.status_charge_point
         }
         for row in result
