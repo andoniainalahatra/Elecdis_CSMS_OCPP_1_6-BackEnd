@@ -116,6 +116,13 @@ def read_charge_point_connector(session:Session, page: int = 1, number_items: in
         ).all()
 
        
+        count = session.exec(
+            select(func.count(ChargePoint.id))
+            .join(Connector, ChargePoint.id == Connector.charge_point_id)
+            .where(ChargePoint.state == ACTIVE_STATE)
+            .group_by(ChargePoint.id)
+        ).all()
+
         
         formatted_result = [
             {
@@ -131,7 +138,7 @@ def read_charge_point_connector(session:Session, page: int = 1, number_items: in
             for cp in chargepoints
         ]
 
-        pagination.total_items = len(formatted_result)
+        pagination.total_items = len(count)
         return {"data": formatted_result, "pagination":pagination.dict()}
     except Exception as e:
         return {"messageError": f"Error: {str(e)}"}
@@ -216,12 +223,16 @@ def read_cp(session:Session, page: int = 1, number_items: int = 50):
             .offset(pagination.offset)
             .limit(pagination.limit)
         ).all()
+        count=session.exec(
+            select(
+                func.count(ChargePoint.id).label("nombre")
+                 
+            ).select_from(ChargePoint)).one()
         charge_data = []
         for cp, energy in charge:
             val=Cp_form(id=cp.id,serial_number=cp.serial_number,charge_point_model=cp.charge_point_model,charge_point_vendors=cp.charge_point_vendors,status=cp.status,adresse=cp.adresse,latitude=cp.latitude,longitude=cp.longitude,energie_consomme=energy)
             charge_data.append(dict(val))
-        has_next = len(charge)
-        pagination.total_items = has_next
+        pagination.total_items = count
         return {"data": charge_data, "pagination": pagination.dict()}
     except Exception as e:
         return {"messageError": f"Error: {str(e)}"}
