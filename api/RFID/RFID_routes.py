@@ -10,6 +10,7 @@ from core.database import get_session
 from core.utils import get_datas_from_csv
 from api.RFID.RFID_Services import update_rfid_service, delete_rfid_service, upload_rfid_from_csv, create_rfid_service, \
     get_all_rfid, get_deleted_rfid, get_rdif_by_id
+from models.elecdis_model import StatusEnum
 
 router = APIRouter()
 
@@ -68,4 +69,26 @@ def get_rfid_by_id_routes(id: int, session: Session = Depends(get_session)):
     rfid = get_rdif_by_id(id=id, session=session)
     if rfid is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="RFID not found")
+    return rfid
+
+@router.put("/activate/{id}")
+def activate_rfid_routes(id: int, session: Session = Depends(get_session)):
+    rfid = get_rdif_by_id(id=id, session=session)
+    if rfid is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="RFID not found")
+    if rfid.status != StatusEnum.active:
+        rfid.status = StatusEnum.active
+        session.add(rfid)
+        session.commit()
+    return rfid
+
+@router.put("/deactivate/{id}")
+def deactivate_rfid_routes(id: int, session: Session = Depends(get_session)):
+    rfid = get_rdif_by_id(id=id, session=session)
+    if rfid is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="RFID not found")
+    if rfid.status != StatusEnum.inactive:
+        rfid.status = StatusEnum.inactive
+        session.add(rfid)
+        session.commit()
     return rfid
