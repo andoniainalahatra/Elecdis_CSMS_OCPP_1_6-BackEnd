@@ -322,6 +322,7 @@ def get_heures_de_pointes(session: Session):
 
 def get_session_data_chart(session :Session_db, date_here:date):
     query = text(f"""
+    select hour , max(user_count) as event_count, max(user_count) as user_count from (
     (select
          TO_CHAR(DATE_TRUNC('hour', start_time),'HH24:MI:SS') AS hour,
          COUNT(*) AS event_count,
@@ -331,7 +332,7 @@ def get_session_data_chart(session :Session_db, date_here:date):
      and session.start_time:: date= '{date_here}' :: date
      group by hour
      order by hour)
-    union all
+    union 
     (select
          TO_CHAR(generate_series::time, 'HH24:MI:SS') AS hour,
          0 AS event_count,
@@ -341,7 +342,7 @@ def get_session_data_chart(session :Session_db, date_here:date):
          '2023-01-01 23:00:00'::timestamp,
          '1 hour'::interval
      ))
-    order by hour;
+    order by hour ) as t group by hour;
     """)
 
     with session:
