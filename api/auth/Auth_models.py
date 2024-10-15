@@ -1,7 +1,12 @@
 from pydantic import BaseModel
+from typing import Optional
+from api.users.UserServices import UserData
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user:UserData
 
 
 class UserRegister(BaseModel):
@@ -13,7 +18,7 @@ class UserRegister(BaseModel):
     phone:str
     id_subscription: int
     id_user_group: int
-    id_partner: int | None = None
+    id_partner: Optional[int] = None
 
 class LoginData(BaseModel):
     username:str

@@ -24,7 +24,7 @@ class StartTransaction:
         try:
             session_data = Session_create(
                 start_time=timestamp,
-                connector_id=str(connectorId),
+                connector_id=f"{connectorId}{charge_point_instance.id}",
                 user_tag=idTag,
                 metter_start=meterStart)
             transaction= create_session_service( session=next(get_session()), session_data=session_data)

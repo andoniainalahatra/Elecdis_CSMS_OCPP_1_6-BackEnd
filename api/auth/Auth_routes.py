@@ -10,6 +10,8 @@ async def login_for_access_token(form_data: LoginData):
     session = next(get_session())
     try:
         generated_token = login(form_data.username, form_data.password, session)
+        # user= await  get_current_user(session, generated_token.token)
+        user=None
         return generated_token
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
@@ -51,7 +53,7 @@ async def forgot_password(email: str, tasks: BackgroundTasks):
 def reset_password(reset_request : ResetPassword, session : Session =Depends(get_session)):
     try:
         # check code
-        print(check_code_reset(email="priscafehiarisoa@icloud.com", code="043791",session=session))
+        check_code_reset(email=reset_request.email, code=reset_request.code,session=session)
         # save new password
         change_password(reset_request,session)
         return {

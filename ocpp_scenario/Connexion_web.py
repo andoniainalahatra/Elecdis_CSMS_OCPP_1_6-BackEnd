@@ -41,26 +41,39 @@ class Connexion:
     async def receive_messages(websocket, message_queue,failed_message_queue, rabbit_mq,charge_point_id):
         try:
             while True:
+                try:
                 # Recevoir un message du WebSocket
-                message1 = await websocket.recv()
-                message = json.loads(message1)
-                val=Response(charge_point_id,message)
-                logging.info(f"Message reçu brut : {message1}")
-                try:
-                    if message[0] == 2 :
-                        await message_queue.put(val.to_dict())
-                except (json.JSONDecodeError, IndexError) as e:
-                    logging.error(f"Erreur de traitement du message : {e}")
-                try:
-                    await websocket.ping()
-                except Exception as e:
-                    await failed_message_queue.put(val.to_dict())
-                    break              
+                    message1 = await websocket.recv()
+                    message = json.loads(message1)
+                    val=Response(charge_point_id,message)
+                    logging.info(f"CP => CSMS {message1}")
+                    try:
+                        if message[0] == 2:
+                            await message_queue.put(val.to_dict())
+                        # elif message[0] == 3 and isinstance(message[2], str) and message[2] == "RemoteStopTransaction":
+                        #     await rabbit_mq.publish_message(Response(charge_point_id,message).to_dict(), "04")
+                    
+                    except (json.JSONDecodeError, IndexError) as e:
+                        logging.error(f"Erreur de traitement du message : {e}")
+                    
+                    # Envoyer un ping pour garder la connexion vivante
+                    try:
+                        await websocket.ping()
+                    except Exception as e:
+                        logging.error(f"Erreur lors de l'envoi du ping : {e}")
+                        await failed_message_queue.put(val.to_dict())
+                        break
 
-        except ConnectionClosedError:
-            logging.info("WebSocket connection closed")
+                except ConnectionClosedError as e:
+                    logging.info(f"WebSocket connection closed: {e}")
+                    break
         except Exception as e:
             logging.error(f"Error during message reception: {e}")
+        finally:
+            # S'assurer que la connexion est proprement fermée
+            if not websocket.closed:
+                await websocket.close()
+            logging.info("WebSocket connection closed properly.")
     @staticmethod
     async def process_messages(message_queue,failed_message_queue,rabbit_mq):
         while True:
@@ -76,6 +89,7 @@ class Connexion:
         try:
             charge_point_id = path.strip('/')
             Connexion.connections[charge_point_id]=websocket
+            logging.info(f"WebSocket connection established for {charge_point_id}")
             rabbitmq_publisher = Connexion_rabbit()
             connection=await rabbitmq_publisher.get_rabbit_connection()
             message_queue = asyncio.Queue()
@@ -85,6 +99,8 @@ class Connexion:
                 Connexion.process_messages(message_queue,failed_message_queue, rabbitmq_publisher),
                 ConsumerRabbit.consume_messages(connection),
                 ConsumerRabbit2.consume_messages(connection)
+                
+
                
             )
         except Exception as e:
@@ -92,6 +108,7 @@ class Connexion:
         
     @staticmethod 
     async def send_messages(charge_point_id: str, payload: dict):
+        from fastapi import HTTPException
         try:
             websocket = Connexion.connections.get(charge_point_id)
             if websocket is None or websocket.closed:
@@ -99,9 +116,9 @@ class Connexion:
                 return
             
             payload = json.dumps(payload) if isinstance(payload, (dict, list)) else str(payload)
-            logging.info(f"Payload type after conversion: {type(payload)}")
+            #logging.info(f"Payload type after conversion: {type(payload)}")
             await websocket.send(payload)
-            print(f"Sent message to {charge_point_id}: {payload}")
+            #print(f"Sent message to {charge_point_id}: {payload}")
 
         except ConnectionClosedError:
             logging.info("WebSocket connection closed")

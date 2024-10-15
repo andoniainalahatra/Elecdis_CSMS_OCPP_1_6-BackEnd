@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import logging
 from aio_pika import ExchangeType, Message as AioPikaMessage,IncomingMessage
 import asyncio
+from core.config import *
 
 
 class Connexion_rabbit:
@@ -14,8 +15,8 @@ class Connexion_rabbit:
 
     async def get_rabbit_connection(self):    
         try:
-            self.connection = await aio_pika.connect_robust("amqp://guest:guest@rabbitmq/")
-            logging.info("Connection to RabbitMQ established")
+            self.connection = await aio_pika.connect_robust(CONNECTION_RABBIT)
+            #logging.info("Connection to RabbitMQ established")
             return self.connection
         except Exception as e:
             logging.error(f"Error connecting to RabbitMQ: {e}")
@@ -31,10 +32,12 @@ class Connexion_rabbit:
             queue1 = await channel.declare_queue("queue_1")
             queue2=await channel.declare_queue("queue_2")
             queue3=await channel.declare_queue("connection_close")
+            queue4=await channel.declare_queue("remote")
             # Lier les queues à l'échange avec des clés de routage
             await queue1.bind(exchange,routing_key="01")
             await queue2.bind(exchange,routing_key="02")
             await queue3.bind(exchange,routing_key="03")
+            await queue4.bind(exchange,routing_key="04")
 
     async def publish_message(self,content:list,routing:str):
         try:

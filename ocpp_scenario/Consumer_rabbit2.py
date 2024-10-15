@@ -26,9 +26,9 @@ class ConsumerRabbit2:
                             payload = ocpp_message.get("payload")
                             charge_point_id = ocpp_message.get("charge_point_id")
                             connexion=Connexion()
-                            #await asyncio.sleep(1)
+                            #await asyncio.sleep(2)
                             await connexion.send_messages(charge_point_id,payload)
-                            logging.info(f"Message sent to charge point  via WebSocket: {payload}")
+                            logging.info(f"CP <= CSMS{payload}")
                         
                     except json.JSONDecodeError as e:
                         logging.error(f"Failed to decode JSON message: {e}")
@@ -43,6 +43,6 @@ class ConsumerRabbit2:
                             logging.error(f"Unexpected error: {type(e).__name__} - {str(e)}")
 
             await queue.consume(on_message)
-            logging.info("Consumer started and waiting for messages...")
+            #logging.info("Consumer started and waiting for messages...")
             await asyncio.Future()  # Run indefinitely
             

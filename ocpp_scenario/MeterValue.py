@@ -14,5 +14,6 @@ class MeterValue:
     @apply_types
     @on(Action.MeterValues)
     async def on_metervalues(self,charge_point_instance,connectorId,meterValue,**kwargs):
-        logging.info(f"MV:{connectorId}+{meterValue}")
+        logging.info(f"MV:{connectorId}+{meterValue}+{charge_point_instance}")
         return {}
+
