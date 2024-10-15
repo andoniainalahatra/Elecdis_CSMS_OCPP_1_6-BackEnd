@@ -92,6 +92,8 @@ def get_deleted_rfid(session: Session, page: int = 1, number_items: int = 50):
     return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) == DELETED_STATE)).all(), session), "pagination": pagination.dict()}
 
 def get_rfid_data(data : Tag, session: Session):
+    if data is None:
+        return None
     # get last used
     history= (get_rfid_use_history(session, data.id))
     hist =[Historique_rfids( date= data.created_at, action = data.action, session_id=data.session_id) for data in history]
@@ -163,7 +165,7 @@ async def upload_rfid_from_csv(file: UploadFile, session: Session, create_non_ex
 def get_by_tag(session: Session, tag: str):
     return session.exec(select(Tag).where(Tag.tag == tag, Tag.state!=DELETED_STATE )).first()
 def get_rdif_by_id(session: Session, id: int):
-    print(DELETED_STATE, id)
+
     datas =get_rfid_data(session.exec(select(Tag).where(Tag.id == id, Tag.state!=DELETED_STATE )).first(), session)
     if datas is None:
         raise HTTPException(status_code=404, detail="RFID not found")
