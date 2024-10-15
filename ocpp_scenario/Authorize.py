@@ -9,6 +9,7 @@ from propan import apply_types
 import logging
 
 from core.config import TIME_ZONE
+from models.elecdis_model import Rfid_usage_history
 
 logging.basicConfig(level=logging.INFO)
 from core.database import get_session
@@ -25,23 +26,18 @@ class Authorize:
         session : Session = next(get_session())
         tag= get_by_tag(session,idTag)
         timezone = pytz.timezone(TIME_ZONE)
-
         expiry_date =(datetime.now(timezone) + timedelta(days=2))
+        rfid_usage_history = Rfid_usage_history(date=datetime.now(timezone),tag_id=tag.id, action="authorize", session_id=charge_point_instance.id)
+        status = "Accepted"
         if tag is None:
-
-            return {
-                "idTagInfo":{
-                    'status': 'Blocked',
-                    'expiryDate': expiry_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-                }
+            status="Blocked"
+        rfid_usage_history.action += f" {status}"
+        session.add(rfid_usage_history)
+        session.commit()
+        return {
+            "idTagInfo":{
+                'status': status,
+                'expiryDate': expiry_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
             }
-        else:
-            return {
-                "idTagInfo":{
-                    'status': 'Accepted',
-                    'expiryDate': expiry_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
-                }
-            }
-
-
+        }
 
