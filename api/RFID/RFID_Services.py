@@ -2,11 +2,11 @@ from datetime import datetime
 from typing import List
 from sqlmodel import cast, Integer
 
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 from api.RFID.RFID_models import *
 from core.database import get_session
 from models.Pagination import Pagination
-from models.elecdis_model import Tag, User
+from models.elecdis_model import Tag, User, StatusEnum, Rfid_usage_history
 from sqlmodel import Session, select, func
 from core.utils import *
 from api.users.UserServices import get_user_from_email, get_user_by_id
@@ -27,7 +27,8 @@ def create_rfid_service(rfid: Rfid_create, session: Session, can_commit: bool = 
             raise Exception(f"RFID tag {rfid.rfid} already exists.")
         if rfid.rfid is None or rfid.rfid == "":
             raise ValueError(f"The field 'tag' cannot be empty.")
-        tag = Tag(tag=rfid.rfid, user_id=rfid.user_id)
+        tag = Tag(tag=rfid.rfid, user_id=rfid.user_id, status= StatusEnum.active)
+
         session.add(tag)
         if can_commit:
             session.commit()
@@ -82,24 +83,33 @@ def get_all_rfid(session: Session, page: int = 1, number_items: int = 50):
     pagination = Pagination(page=page, limit=number_items)
     total_items = session.exec(select(func.count(Tag.id)).where(cast(Tag.state, Integer) != DELETED_STATE)).one()
     pagination.total_items = total_items
-    return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) != DELETED_STATE)).all()), "pagination": pagination.dict()}
+    return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) != DELETED_STATE)).all(), session), "pagination": pagination.dict()}
 
 def get_deleted_rfid(session: Session, page: int = 1, number_items: int = 50):
     pagination = Pagination(page=page, limit=number_items)
     total_items = session.exec(select(func.count(Tag.id)).where(cast(Tag.state, Integer) == DELETED_STATE)).one()
     pagination.total_items = total_items
-    return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) == DELETED_STATE)).all()), "pagination": pagination.dict()}
+    return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) == DELETED_STATE)).all(), session), "pagination": pagination.dict()}
 
-def get_rfid_data(data : Tag):
+def get_rfid_data(data : Tag, session: Session):
+    if data is None:
+        return None
+    # get last used
+    history= (get_rfid_use_history(session, data.id))
+    hist =[Historique_rfids( date= data.created_at, action = data.action, session_id=data.session_id) for data in history]
     return Rfid_data(
         id=data.id,
         rfid=data.tag,
         user_id=data.user_id,
-        user_name=f"{data.user.first_name} {data.user.last_name}"
+        user_name=f"{data.user.first_name} {data.user.last_name}",
+        status=data.status,
+        last_used=get_last_used_date_rfid(session, data.id),
+        registration=data.created_at,
+        history=hist
     )
 
-def get_rfid_data_lists(datas: List[Tag]):
-    return [get_rfid_data(data) for data in datas]
+def get_rfid_data_lists(datas: List[Tag], session: Session):
+    return [get_rfid_data(data, session) for data in datas]
 
 async def upload_rfid_from_csv(file: UploadFile, session: Session, create_non_existing_users: bool = True):
     logs = []
@@ -152,17 +162,26 @@ async def upload_rfid_from_csv(file: UploadFile, session: Session, create_non_ex
     except Exception as e:
         session.rollback()
         return {"message": f"Error: {str(e)}"}
-
-
 def get_by_tag(session: Session, tag: str):
     return session.exec(select(Tag).where(Tag.tag == tag, Tag.state!=DELETED_STATE )).first()
-
 def get_rdif_by_id(session: Session, id: int):
-    return get_rfid_data(session.exec(select(Tag).where(Tag.id == id, Tag.state!=DELETED_STATE )).first())
+
+    datas =get_rfid_data(session.exec(select(Tag).where(Tag.id == id, Tag.state!=DELETED_STATE )).first(), session)
+    if datas is None:
+        raise HTTPException(status_code=404, detail="RFID not found")
+    return datas
 def get_user_by_tag(session : Session, tag : str):
     tag = session.exec(select(Tag).where(Tag.tag == tag )).first()
     if tag is None:
         return None
     return tag.user
 
+# todo : add history to rfid / status / get details rfid
+
+def get_last_used_date_rfid(session: Session, id_tag: int):
+    date_last_used = session.exec(select(func.max(Rfid_usage_history.created_at)).where(Rfid_usage_history.tag_id == id_tag)).first()
+    return date_last_used
+
+def get_rfid_use_history(session: Session, id_tag: int):
+    return session.exec(select(Rfid_usage_history).where(Rfid_usage_history.tag_id == id_tag)).all()
 

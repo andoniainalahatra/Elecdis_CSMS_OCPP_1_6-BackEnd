@@ -98,7 +98,13 @@ def get_user_by_id_route(id: int, session: Session = Depends(get_session)):
         if user is None:
             raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="User not found")
         return set_update_user_data(user)
-
+@router.delete("/{id}")
+def delete_user_by_id(id: int, session: Session = Depends(get_session)):
+    try:
+        delete_user(id, session)
+    except Exception as e:
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail=str(e))
+    return {"message": "User deleted successfully"}
 @router.get("/new_clients/")
 def get_new_clients(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],

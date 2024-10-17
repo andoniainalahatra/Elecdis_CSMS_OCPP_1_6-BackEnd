@@ -82,6 +82,9 @@ def check_email_if_exists(email: str, session: Session):
 
 def authenticate_user(session: Session, email: str, password: str):
     user = get_user_from_email(email=email, session=session)
+    user_group = session.exec(select(UserGroup).where(UserGroup.id == user.id_user_group)).first()
+    if(user_group.name != ADMIN_NAME):
+        return False
     if not user:
         print("no user found")
         return False

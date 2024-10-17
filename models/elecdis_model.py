@@ -21,26 +21,28 @@ class StatusEnum(str, Enum):
 
 
 
+
 def get_current_time_plus_3_hours() -> datetime:
     return datetime.utcnow() + timedelta(hours=3)
+
+
 class TimestampMixin(SQLModel):
     created_at: datetime = Field(default_factory=get_current_time_plus_3_hours, nullable=False)
     updated_at: datetime = Field(default_factory=get_current_time_plus_3_hours, nullable=False)
 
 
-
 class ChargePoint(TimestampMixin, table=True):
     id: Optional[str] = Field(default=None, primary_key=True)
-    serial_number : Optional[str]
-    charge_point_model : Optional[str]
-    charge_point_vendors : Optional[str]
+    serial_number: Optional[str]
+    charge_point_model: Optional[str]
+    charge_point_vendors: Optional[str]
     status: Optional[str]
     connectors: List["Connector"] = Relationship(back_populates="charge_point")
-    adresse:Optional[str]
-    latitude:float
-    longitude:float
-    state:int
-    firmware_version:Optional[str]
+    adresse: Optional[str]
+    latitude: float
+    longitude: float
+    state: int
+    firmware_version: Optional[str]
 
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
 
@@ -63,7 +65,7 @@ class Connector(TimestampMixin, table=True):
 
     # NUMERO
     connector_id: Optional[int]
-    valeur:Optional[float]= Field(default=0)
+    valeur: Optional[float] = Field(default=0)
     status: Optional[str]
     sessions: List["Session"] = Relationship(back_populates="connector")
     charge_point: Optional["ChargePoint"] = Relationship(back_populates="connectors")
@@ -75,19 +77,22 @@ class Connector(TimestampMixin, table=True):
 
         Index("ix_connector_id", "id"),)
 
+
 class Historique_status(TimestampMixin, table=True):
-    id : Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     # le id an'le connecteur no eto fa tsy le connector_id
     real_connector_id: Optional[str] = Field(foreign_key="connector.id")
     statut: str
-    time_last_statut:datetime= Field(nullable=False)
+    time_last_statut: datetime = Field(nullable=False)
     connector: Optional["Connector"] = Relationship(back_populates="historique_status")
 
+
 class Historique_metter_value(TimestampMixin, table=True):
-    id : Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     real_connector_id: Optional[str] = Field(foreign_key="connector.id")
     valeur: float
     connector: Optional["Connector"] = Relationship(back_populates="historique_metter_value")
+
 
 class TariffGroup(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -97,8 +102,6 @@ class TariffGroup(TimestampMixin, table=True):
     tariffs: List["Tariff"] = Relationship(back_populates="tariff_group")
 
     __table_args__ = (Index("ix_tariffgroup_id", "id"),)
-
-
 
 
 class UserGroup(TimestampMixin, table=True):
@@ -169,11 +172,11 @@ class User(TimestampMixin, table=True):
     last_name: str
     email: str
     password: str
-    phone:Optional[str]
+    phone: Optional[str]
     id_user_group: Optional[int] = Field(foreign_key="usergroup.id")
     id_subscription: Optional[int] = Field(default=None, foreign_key="subscription.id")
     id_partner: Optional[int] = Field(default=None, foreign_key="partner.id")
-    state : Optional[int]=DEFAULT_STATE
+    state: Optional[int] = DEFAULT_STATE
 
     user_group: Optional["UserGroup"] = Relationship(back_populates="users")
     sessions: List["Session"] = Relationship(back_populates="user")
@@ -185,6 +188,8 @@ class User(TimestampMixin, table=True):
     reset_codes: List["User_reset_code"] = Relationship(back_populates="user")
 
     __table_args__ = (Index("ix_user_table_id", "id"),)
+
+
 class PaymentMethodUser(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     id_payment_method: int = Field(foreign_key="paymentmethod.id")
@@ -227,19 +232,20 @@ class TariffSnapshot(TimestampMixin, table=True):
 
 class Session(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    start_time: Optional[datetime]=None
-    end_time: Optional[datetime]=None
-    connector_id: Optional[str] = Field(default=None,foreign_key="connector.id")
-    user_id: Optional[int] = Field(default=None,foreign_key="user_table.id")
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    connector_id: Optional[str] = Field(default=None, foreign_key="connector.id")
+    user_id: Optional[int] = Field(default=None, foreign_key="user_table.id")
     metter_start: Optional[float]
     metter_stop: Optional[float]
-    tag:Optional[str]
-    reason:Optional[str]
+    tag: Optional[str]
+    reason: Optional[str]
 
     connector: Optional["Connector"] = Relationship(back_populates="sessions")
     user: Optional["User"] = Relationship(back_populates="sessions")
     tariff_snapshots: List["TariffSnapshot"] = Relationship(back_populates="session")
     transactions: List["Transaction"] = Relationship(back_populates="session")
+    rfid_usage_history: List["Rfid_usage_history"] = Relationship(back_populates="session")
 
     __table_args__ = (Index("ix_session_id", "id"),)
 
@@ -248,9 +254,11 @@ class Tag(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: Optional[int] = Field(default=None, foreign_key="user_table.id")
     tag: str
-    state : Optional[int]=DEFAULT_STATE
+    state: Optional[int] = DEFAULT_STATE
+    status: Optional[str] = StatusEnum.active
 
     user: Optional["User"] = Relationship(back_populates="tags")
+    rfid_usage_history: List["Rfid_usage_history"] = Relationship(back_populates="tag")
 
     __table_args__ = (Index("ix_tag_id", "id"),)
 
@@ -258,7 +266,7 @@ class Tag(TimestampMixin, table=True):
 # TEST MANY TO MANY RELATIONSHIP
 
 class Subscription_History(TimestampMixin, table=True):
-    id : Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user_table.id")
     subscription_id: int = Field(foreign_key="subscription.id")
 
@@ -273,3 +281,13 @@ class User_reset_code(TimestampMixin, table=True):
     user: Optional["User"] = Relationship(back_populates="reset_codes")
 
     __table_args__ = (Index("ix_user_reset_code_id", "id"),)
+
+
+class Rfid_usage_history(TimestampMixin, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tag_id: int = Field(foreign_key="tag.id")
+    session_id: Optional[int] = Field(foreign_key="session.id", default=True)
+    action: str
+    session : Optional["Session"] = Relationship(back_populates="rfid_usage_history")
+    tag : Optional["Tag"] = Relationship(back_populates="rfid_usage_history")
+    __table_args__ = (Index("ix_rfid_usage_history_id", "id"),)
