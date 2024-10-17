@@ -34,3 +34,23 @@ def update_historique_defaillance(histo_id:str,histo:Historique_defaillance_upda
     session.commit()
     session.refresh(historique)
     return "Modification réussie"
+
+
+def read_historique_defaillance(session : Session, page: int = 1, number_items: int = 50):
+    try:
+        pagination = Pagination(page=page, limit=number_items)
+        histo = session.exec(
+            select(
+                Historique_defailllance 
+            )
+            
+        ).all()
+        count=session.exec(
+            select(
+                func.count(Historique_defailllance.id).label("nombre")
+                 
+            ).select_from(Historique_defailllance)).one()
+        pagination.total_items = count
+        return {"data": histo, "pagination": pagination.dict()}
+    except Exception as e:
+        return {"messageError": f"Error: {str(e)}"}
