@@ -11,10 +11,15 @@ class StatusEnum(str, Enum):
     active = "active"
     inactive = "inactive"
     maintenance = "maintenance"
-    available = "Available"
-    unavailable = "Unavailable"
-    preparing = "Preparing"
-    charging = "charging"
+    available="Available"
+    unavailable="Unavailable"
+    preparing="Preparing"
+    charging="charging"
+    resolve="Resolved"
+    no_resolve="Unresolved"
+    
+
+
 
 
 def get_current_time_plus_3_hours() -> datetime:
@@ -40,6 +45,14 @@ class ChargePoint(TimestampMixin, table=True):
     firmware_version: Optional[str]
 
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
+
+class Historique_defailllance(TimestampMixin, table=True):
+    id : Optional[int] = Field(default=None, primary_key=True)
+    charge_point_id: Optional[str] = Field(default=None, foreign_key="chargepoint.id")
+    time:datetime= Field(nullable=False)
+    Error_code:Optional[str]
+    Description:Optional[str]
+    etat:Optional[str]
 
 
 # Pour les autres classes, les modifications restent les mêmes.
