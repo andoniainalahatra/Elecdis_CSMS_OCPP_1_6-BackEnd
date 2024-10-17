@@ -83,7 +83,7 @@ def get_user_profile_by_id(user_id: int, session: Session = Depends(get_session)
 
 @router.put("/profile/{id}")
 def update_user_profile(user_to_update:UserUpdate,id:int,
-                        # token: str = Depends(oauth_2_scheme),
+                        token: str = Depends(oauth_2_scheme),
                         session: Session = Depends(get_session)):
     try :
         update_user(user_to_update, session,id)
@@ -93,13 +93,17 @@ def update_user_profile(user_to_update:UserUpdate,id:int,
 
 # @router.post
 @router.get("/{id}")
-def get_user_by_id_route(id: int, session: Session = Depends(get_session)):
+def get_user_by_id_route(id: int,
+                         token: str = Depends(oauth_2_scheme),
+                         session: Session = Depends(get_session)):
         user = get_user_by_id(id, session)
         if user is None:
             raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="User not found")
         return set_update_user_data(user)
 @router.delete("/{id}")
-def delete_user_by_id(id: int, session: Session = Depends(get_session)):
+def delete_user_by_id(id: int,
+                      _: Annotated[bool, Depends(RoleChecker(allowed_roles=[ADMIN_NAME]))],
+                      session: Session = Depends(get_session)):
     try:
         delete_user(id, session)
     except Exception as e:
@@ -127,7 +131,10 @@ def count_all_new_clients_based_on_month_and_years(
             "year": year}
 
 @router.post("/import_users_from_csv")
-async def import_users_from_csv(file: UploadFile = File(...), session: Session = Depends(get_session)):
+async def import_users_from_csv(
+        _: Annotated[bool, Depends(RoleChecker(allowed_roles=[ADMIN_NAME]))],
+        file: UploadFile = File(...),
+                                session: Session = Depends(get_session)):
     message = await upload_user_from_csv(file, session)
     if message.get("logs"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(message["logs"]))

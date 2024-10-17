@@ -10,8 +10,14 @@ async def login_for_access_token(form_data: LoginData):
     session = next(get_session())
     try:
         generated_token = login(form_data.username, form_data.password, session)
-        # user= await  get_current_user(session, generated_token.token)
-        user=None
+        return generated_token
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+@router.post("/login_client", response_model=Token)
+async def login_for_access_token(form_data: LoginData):
+    session = next(get_session())
+    try:
+        generated_token = login_user_client(form_data.username, form_data.password, session)
         return generated_token
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
