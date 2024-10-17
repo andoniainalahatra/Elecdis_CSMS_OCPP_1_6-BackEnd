@@ -12,6 +12,7 @@ from ocpp_scenario.Connexion_rabbit import Connexion_rabbit
 from ocpp_scenario.Consumer_rabbit import ConsumerRabbit
 from ocpp_scenario.Consumer_rabbit2 import ConsumerRabbit2
 from ocpp_scenario.Response import Response
+from ocpp_scenario.Consumer_Error import ConsumerError
 from typing import Dict
 
 logging.basicConfig(level=logging.INFO)
@@ -50,8 +51,8 @@ class Connexion:
                     try:
                         if message[0] == 2:
                             await message_queue.put(val.to_dict())
-                        # elif message[0] == 3 and isinstance(message[2], str) and message[2] == "RemoteStopTransaction":
-                        #     await rabbit_mq.publish_message(Response(charge_point_id,message).to_dict(), "04")
+                        if message[0] == 4:
+                            await rabbit_mq.publish_message(val.to_dict(),"04")
                     
                     except (json.JSONDecodeError, IndexError) as e:
                         logging.error(f"Erreur de traitement du message : {e}")
@@ -88,24 +89,26 @@ class Connexion:
     async def on_connect(websocket,path):
         try:
             charge_point_id = path.strip('/')
-            Connexion.connections[charge_point_id]=websocket
+            logging.info(f"Connection attempt on path: {charge_point_id}")
+            
+            Connexion.connections[charge_point_id] = websocket
             logging.info(f"WebSocket connection established for {charge_point_id}")
+
             rabbitmq_publisher = Connexion_rabbit()
-            connection=await rabbitmq_publisher.get_rabbit_connection()
+            connection = await rabbitmq_publisher.get_rabbit_connection()
             message_queue = asyncio.Queue()
             failed_message_queue = asyncio.Queue()
-            await asyncio.gather(
-                Connexion.receive_messages(websocket, message_queue,failed_message_queue,rabbitmq_publisher,charge_point_id),
-                Connexion.process_messages(message_queue,failed_message_queue, rabbitmq_publisher),
-                ConsumerRabbit.consume_messages(connection),
-                ConsumerRabbit2.consume_messages(connection)
-                
 
-               
+            await asyncio.gather(
+                Connexion.receive_messages(websocket, message_queue, failed_message_queue, rabbitmq_publisher, charge_point_id),
+                Connexion.process_messages(message_queue, failed_message_queue, rabbitmq_publisher),
+                ConsumerRabbit.consume_messages(connection),
+                ConsumerRabbit2.consume_messages(connection),
+                ConsumerError.consume_messages(connection)
             )
+
         except Exception as e:
             logging.error(f"Error during WebSocket connection setup: {e}")
-        
     @staticmethod 
     async def send_messages(charge_point_id: str, payload: dict):
         from fastapi import HTTPException
@@ -124,3 +127,17 @@ class Connexion:
             logging.info("WebSocket connection closed")
         except Exception as e:
             logging.error(f"Error during message reception: {e}")
+
+
+    @staticmethod
+    async def notify_frontend_of_error(error_message: dict):
+        # Ajoutez votre logique pour envoyer l'erreur au front-end ici
+        frontend_websocket = Connexion.connections.get("frontend")
+        if frontend_websocket:
+            await frontend_websocket.send(json.dumps(error_message))
+            logging.info(f"Notification envoyée au front-end: {error_message}")
+        else:
+            logging.error("No WebSocket connection to the front-end.")
+
+
+

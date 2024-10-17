@@ -32,7 +32,7 @@ class Connexion_rabbit:
             queue1 = await channel.declare_queue("queue_1")
             queue2=await channel.declare_queue("queue_2")
             queue3=await channel.declare_queue("connection_close")
-            queue4=await channel.declare_queue("remote")
+            queue4=await channel.declare_queue("notification_error")
             # Lier les queues à l'échange avec des clés de routage
             await queue1.bind(exchange,routing_key="01")
             await queue2.bind(exchange,routing_key="02")

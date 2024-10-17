@@ -686,6 +686,7 @@ def map_cp(session:Session):
             ChargePoint.latitude.label("latitude")
            
         )
+        .where(ChargePoint.state==ACTIVE_STATE)
     ).all()
     formatted_result = [
         {
