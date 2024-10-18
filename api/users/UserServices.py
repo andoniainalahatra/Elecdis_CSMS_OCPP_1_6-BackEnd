@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 
 import bcrypt
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 
 from api.transaction.Transaction_models import Session_data_affichage, Transaction_details
 # from api.transaction.Transaction_service import get_list_session_data_2
@@ -181,6 +181,20 @@ def get_user_data(user):
         subscription=user.subscription.type_subscription if user.subscription else None,
         partner=user.partner.name if user.partner else None
     )
+def get_user_profile_data(user, session):
+    return {
+        "id": user.id,
+        "first_name": user.first_name,
+        "last_name":user.last_name,
+        "email":user.email,
+        "role":user.user_group.name,
+        "phone":user.phone,
+        "subscription":user.subscription.type_subscription if user.subscription else None,
+        "partner":user.partner.name if user.partner else None,
+        "nombre_recharges":count_user_sessions(user,session),
+        "temps_recharge_total":temps_total_de_recharges_passees(user,session),
+        "energie_recharge_total": f"{count_energy_spent_by_user(user, session)} kwh"
+    }
 
 
 def get_user_sessions_list(user, session: Session, page: int = 1, number_items: int = 50):
@@ -257,6 +271,8 @@ def get_user_transactions_list(user, session, page: int = 1, number_items: int =
 
 def get_user_tags_list(user, session, page, number_items):
     pagination = Pagination(page=page, limit=number_items)
+    if(user is None):
+        raise HTTPException(status_code=404, detail=f"User not found")
     total_items = session.exec(select(func.count(Tag.id)).where(
         Tag.user_id == user.id,
         Tag.state != DELETED_STATE)).one()
@@ -265,7 +281,25 @@ def get_user_tags_list(user, session, page, number_items):
         Tag.user_id == user.id,
         Tag.state != DELETED_STATE
     )).all()
-    return {"data": tags, pagination: pagination.dict()}
+    print(pagination)
+    return {"data": tags, "pagination": pagination.dict()}
+
+def count_user_sessions(user, session):
+    session_list_count=session.exec(select(func.count(SessionModel.id)).where(SessionModel.user_id==user.id)).one()
+    return session_list_count
+
+def count_energy_spent_by_user(user,session):
+    session_energy = session.exec(select(func.sum((SessionModel.metter_stop - SessionModel.metter_start)/1000)).where(SessionModel.user_id==user.id)).one()
+    return session_energy
+
+def temps_total_de_recharges_passees(user,session):
+    session_temps = session.exec(
+
+        select(func.to_char(
+            text("interval '1 second'") * func.sum(func.extract('epoch', SessionModel.end_time - SessionModel.start_time)),
+            'HH24 h MI mn SS s'
+        )).where(SessionModel.user_id==user.id)).one()
+    return session_temps
 
 
 def get_user_from_email(email: str, session: Session):

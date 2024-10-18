@@ -3,6 +3,7 @@ from typing import List
 
 from sqlmodel import Session as Session_db, select,func,case
 
+from api.users.UserServices import get_user_by_id
 from core.database import get_session
 from models.Pagination import Pagination, Data_display
 from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction
@@ -157,7 +158,9 @@ def get_status_session(session:Session_db, session_id:int):
 def get_session_data_2(session:SessionModel, session_db:Session_db):
 
     transaction_datas = get_sums_transactions(session_db, session.id)
-    user=get_user_by_tag(session_db,session.tag)
+    # user=get_user_by_tag(session_db,session.tag)
+    user=get_user_by_id(session.user_id,session_db)
+    print(user)
     status=get_status_session(session_db,session.id)
     # print(session)
     # print(f'==> {user}')
@@ -178,7 +181,7 @@ def get_session_data_2(session:SessionModel, session_db:Session_db):
         )
     else :
         data = Session_data_affichage()
-
+    print(data.user_name)
     return data
 
 def get_list_session_data_2 (sessions:List[SessionModel], session_db:Session_db):
@@ -356,3 +359,104 @@ def get_session_data_chart(session :Session_db, date_here:date):
         result_dicts.append(temp)
     return result_dicts
 
+def search_transactions_by_date(session:Session_db, date_start:date, date_end:date, montant_fin, montant_debut, energy_fin, energy_debut,page, number_items):
+    query = select(SessionModel).where(SessionModel.id != -1)
+    query_count = select(func.count(SessionModel.id))
+
+    # Handle montant filters
+    if montant_debut is not None and montant_fin is not None:
+        # Modify the query to include grouping and handle aggregates properly
+        query = (
+            query
+            .join(Transaction, Transaction.session_id == SessionModel.id)
+            .group_by(SessionModel.id, SessionModel.created_at, SessionModel.updated_at)
+            .having(func.sum(Transaction.total_price) >= montant_debut, func.sum(Transaction.total_price) <= montant_fin)
+        )
+
+        # Subquery to count the sessions based on the total price range
+        total_price_subquery = (
+            select(
+                SessionModel.id,
+                func.sum(Transaction.total_price).label("total_price")
+            )
+            .join(Transaction, Transaction.session_id == SessionModel.id)
+            .group_by(SessionModel.id)
+            .subquery()
+        )
+        query_count = (
+            select(func.count())
+            .select_from(total_price_subquery)
+            .where(total_price_subquery.c.total_price.between(montant_debut, montant_fin))
+        )
+
+    # Handle date filters
+    if date_start is not None and date_end is not None:
+        query = query.where(func.date(SessionModel.start_time).between(date_start, date_end))
+        query_count = query_count.where(func.date(SessionModel.start_time).between(date_start, date_end))
+
+    # Handle energy filters
+    if energy_debut is not None and energy_fin is not None:
+        query = query.where((SessionModel.metter_stop - SessionModel.metter_start) / 1000 >= energy_debut,
+                            (SessionModel.metter_stop - SessionModel.metter_start) / 1000 <= energy_fin)
+        query_count = query_count.where(SessionModel.metter_start >= energy_debut,
+                                        SessionModel.metter_stop <= energy_fin)
+
+    # Final query adjustments
+    query_count = query_count.where(SessionModel.id != -1)
+
+    # Pagination logic
+    pagination = Pagination(page=page, limit=number_items)
+    print(query_count)
+    count = session.exec(query_count).one()
+    print("hehe",count)
+    pagination.total_items = count
+    transactions = session.exec(query.offset(pagination.offset).limit(pagination.limit)).all()
+
+    return {"data": get_list_session_data_2(transactions, session_db=session), "pagination": pagination.dict()}
+def search_transactions_by_date2(session:Session_db, date_start:date, date_end:date, montant_fin, montant_debut, energy_fin, energy_debut,page, number_items):
+    query = select(SessionModel).where(SessionModel.id != -1)
+    query_count = select(func.count(SessionModel.id))
+
+    # Handle montant filters
+    if montant_debut is not None and montant_fin is not None:
+        query = (
+            query
+            .join(Transaction, Transaction.session_id == SessionModel.id)
+            .group_by(SessionModel.id, SessionModel.created_at, SessionModel.updated_at)
+            .having(func.sum(Transaction.total_price) >= montant_debut, func.sum(Transaction.total_price) <= montant_fin)
+        )
+
+        # Adjust count query to count grouped rows properly
+        query_count = (
+            select(func.count(SessionModel.id))
+            .join(Transaction, Transaction.session_id == SessionModel.id)
+            .group_by(SessionModel.id, SessionModel.created_at, SessionModel.updated_at)
+            .having(func.sum(Transaction.total_price) >= montant_debut, func.sum(Transaction.total_price) <= montant_fin)
+        )
+
+    # Handle date filters
+    if date_start is not None and date_end is not None:
+        query = query.where(func.date(SessionModel.start_time).between(date_start, date_end))
+        query_count = query_count.where(func.date(SessionModel.start_time).between(date_start, date_end))
+
+    # Handle energy filters
+    if energy_debut is not None and energy_fin is not None:
+        query = query.where((SessionModel.metter_stop - SessionModel.metter_start) / 1000 >= energy_debut,
+                            (SessionModel.metter_stop - SessionModel.metter_start) / 1000 <= energy_fin)
+        query_count = query_count.where(SessionModel.metter_start >= energy_debut,
+                                        SessionModel.metter_stop <= energy_fin)
+
+    # Final query adjustments
+    query_count = query_count.where(SessionModel.id != -1)
+
+    # Pagination logic
+    pagination = Pagination(page=page, limit=number_items)
+
+    # Use `.scalar()` to fetch the count
+    count = session.exec(query_count).scalar()
+    pagination.total_items = count if count is not None else 0
+
+    # Fetch the transactions with pagination
+    transactions = session.exec(query.offset(pagination.offset).limit(pagination.limit)).all()
+
+    return {"data": get_list_session_data_2(transactions, session_db=session), "pagination": pagination.dict()}

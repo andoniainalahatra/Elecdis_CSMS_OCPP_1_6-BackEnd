@@ -64,9 +64,9 @@ def get_all_current_user_tags(token: str = Depends(oauth_2_scheme), session: Ses
     tags = get_user_tags_list(user=user, session=session, page=page, number_items=number_items)
     return tags
 
-@router.get("/tags/{user_id}")
+@router.get("/RFID/{user_id}")
 async def get_all_user_tags_by_user_id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
-    tags = get_user_tags_list(user=await get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
+    tags = get_user_tags_list(user= get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
     return tags
 @router.get("/current/profile")
 def get_current_user_profile(
@@ -79,7 +79,7 @@ def get_current_user_profile(
 @router.get("/profile/{user_id}")
 def get_user_profile_by_id(user_id: int, session: Session = Depends(get_session)):
     user = get_user_by_id(user_id, session)
-    return {"user": get_user_data(user)}
+    return {"user": get_user_profile_data(user,session)}
 
 @router.put("/profile/{id}")
 def update_user_profile(user_to_update:UserUpdate,id:int,

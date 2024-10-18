@@ -54,6 +54,11 @@ def get_heures_de_pointes_des_sessions(session: Session = Depends(get_session)):
 @router.get("/graphes_sessions")
 def get_graphes_sessions(session: Session = Depends(get_session), date_selected:Optional[date]=datetime.now().date()):
     return get_session_data_chart(session,date_selected)
+@router.get("/search_transactions")
+def search_transactions(date_start:Optional[date]=None, date_end:Optional[date]=None,montant_debut:Optional[float]=None, montant_fin:Optional[float]=None, energy_debut:Optional[float]=None,energy_fin:Optional[float]=None, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    return search_transactions_by_date(session, date_start, date_end,montant_fin,montant_debut,energy_fin,energy_debut, page, number_items)
+
 @router.get("/{user_id}")
 def get_charging_session_by_user_Id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
     return get_transactions_by_user_id(user_id=user_id, session=session, page=page, number_items=number_items)
+
