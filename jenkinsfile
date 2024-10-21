@@ -49,18 +49,18 @@ pipeline {
             steps {
                 script {
                     // Vérifier la présence des conteneurs Docker
-                    def containers = sh(script: "sudo docker ps -q", returnStdout: true).trim()
+                    def containers = sh(script: "docker ps -q", returnStdout: true).trim()
 
                     if (containers) {
                         // Arrêter et supprimer les conteneurs existants
-                        sh 'sudo docker-compose down --rmi all'
+                        sh 'docker-compose down --rmi all'
                     }
 
                     // Mettre à jour et démarrer les services Docker en local
-                    sh 'sudo docker-compose up --build -d'   // Démarre les conteneurs en arrière-plan
+                    sh 'docker-compose up --build -d'   // Démarre les conteneurs en arrière-plan
 
                     // Vérifier l'état des services Docker
-                    sh 'sudo docker-compose ps'
+                    sh 'docker-compose ps'
                 }
             }
         }
