@@ -245,7 +245,6 @@ class Session(TimestampMixin, table=True):
     user: Optional["User"] = Relationship(back_populates="sessions")
     tariff_snapshots: List["TariffSnapshot"] = Relationship(back_populates="session")
     transactions: List["Transaction"] = Relationship(back_populates="session")
-    rfid_usage_history: List["Rfid_usage_history"] = Relationship(back_populates="session")
 
     __table_args__ = (Index("ix_session_id", "id"),)
 
@@ -288,6 +287,5 @@ class Rfid_usage_history(TimestampMixin, table=True):
     tag_id: int = Field(foreign_key="tag.id")
     session_id: Optional[int] = Field(foreign_key="session.id", default=True)
     action: str
-    session : Optional["Session"] = Relationship(back_populates="rfid_usage_history")
     tag : Optional["Tag"] = Relationship(back_populates="rfid_usage_history")
     __table_args__ = (Index("ix_rfid_usage_history_id", "id"),)

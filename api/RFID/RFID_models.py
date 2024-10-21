@@ -15,7 +15,6 @@ class Rfid_update(BaseModel):
 class Historique_rfids(BaseModel):
     date: datetime
     action: str
-    session_id: Optional[int]=None
 
 
 class Rfid_data(BaseModel):

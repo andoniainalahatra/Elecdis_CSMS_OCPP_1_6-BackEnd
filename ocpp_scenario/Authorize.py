@@ -27,7 +27,7 @@ class Authorize:
         tag= get_by_tag(session,idTag)
         timezone = pytz.timezone(TIME_ZONE)
         expiry_date =(datetime.now(timezone) + timedelta(days=2))
-        rfid_usage_history = Rfid_usage_history(date=datetime.now(timezone),tag_id=tag.id, action="authorize", session_id=charge_point_instance.id)
+        rfid_usage_history = Rfid_usage_history(date=datetime.now(timezone),tag_id=tag.id, action="authorize")
         status = "Accepted"
         if tag is None:
             status="Blocked"
