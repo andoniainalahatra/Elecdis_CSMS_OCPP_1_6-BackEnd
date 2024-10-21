@@ -53,7 +53,7 @@ pipeline {
 
                     if (containers) {
                         // Arrêter et supprimer les conteneurs existants
-                        sh 'docker-compose down --rmi all'
+                        sh 'docker-compose down'
                     }
 
                     // Mettre à jour et démarrer les services Docker en local
