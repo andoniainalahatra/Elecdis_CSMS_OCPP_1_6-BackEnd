@@ -96,7 +96,7 @@ def get_rfid_data(data : Tag, session: Session):
         return None
     # get last used
     history= (get_rfid_use_history(session, data.id))
-    hist =[Historique_rfids( date= data.created_at, action = data.action, session_id=data.session_id) for data in history]
+    hist =[Historique_rfids( date= data.created_at, action = data.action) for data in history]
     return Rfid_data(
         id=data.id,
         rfid=data.tag,
