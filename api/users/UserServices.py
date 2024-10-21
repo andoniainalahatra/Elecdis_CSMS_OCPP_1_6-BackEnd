@@ -311,6 +311,10 @@ def get_user_by_id(id: int, session: Session):
     user = session.exec(select(User).where(User.id == id, User.state != DELETED_STATE)).first()
     return user
 
+def get_user_by_id_trans(id: int, session: Session):
+    user = session.exec(select(User).where(User.id == id)).first()
+    return user
+
 
 def delete_user(id: int, session: Session):
     user = get_user_by_id(id, session)

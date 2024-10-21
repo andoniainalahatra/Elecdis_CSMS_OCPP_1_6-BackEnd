@@ -3,7 +3,7 @@ from typing import List
 
 from sqlmodel import Session as Session_db, select,func,case
 
-from api.users.UserServices import get_user_by_id
+from api.users.UserServices import get_user_by_id, get_user_by_id_trans
 from core.database import get_session
 from models.Pagination import Pagination, Data_display
 from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction
@@ -159,8 +159,7 @@ def get_session_data_2(session:SessionModel, session_db:Session_db):
 
     transaction_datas = get_sums_transactions(session_db, session.id)
     # user=get_user_by_tag(session_db,session.tag)
-    user=get_user_by_id(session.user_id,session_db)
-    print(user)
+    user=get_user_by_id_trans(session.user_id,session_db)
     status=get_status_session(session_db,session.id)
     # print(session)
     # print(f'==> {user}')
@@ -181,7 +180,6 @@ def get_session_data_2(session:SessionModel, session_db:Session_db):
         )
     else :
         data = Session_data_affichage()
-    print(data.user_name)
     return data
 
 def get_list_session_data_2 (sessions:List[SessionModel], session_db:Session_db):
@@ -453,7 +451,7 @@ def search_transactions_by_date2(session:Session_db, date_start:date, date_end:d
     pagination = Pagination(page=page, limit=number_items)
 
     # Use `.scalar()` to fetch the count
-    count = session.exec(query_count).scalar()
+    count = len(session.exec(query).all())
     pagination.total_items = count if count is not None else 0
 
     # Fetch the transactions with pagination
