@@ -48,8 +48,16 @@ pipeline {
         stage('Deploy to Server') {
             steps {
                 script {
+                    // Vérifier la présence des conteneurs Docker
+                    def containers = sh(script: "sudo docker ps -q", returnStdout: true).trim()
+
+                    if (containers) {
+                        // Arrêter et supprimer les conteneurs existants
+                        sh 'sudo docker-compose down --rmi all'
+                    }
+
                     // Mettre à jour et démarrer les services Docker en local
-                    sh 'sudo docker-compose up --build'   // Démarre les conteneurs en arrière-plan
+                    sh 'sudo docker-compose up --build -d'   // Démarre les conteneurs en arrière-plan
 
                     // Vérifier l'état des services Docker
                     sh 'sudo docker-compose ps'
