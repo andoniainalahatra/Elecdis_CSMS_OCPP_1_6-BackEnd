@@ -6,19 +6,19 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
-            steps {
-                script {
-                    if (fileExists('.git')) {
-                        sh 'git reset --hard'
-                        sh 'git clean -fd'
-                        sh 'git pull origin main'
-                    } else {
-                        git branch: 'main', url: 'https://github.com/dario208/elecdis.git', credentialsId: 'github-credentials-id'
-                    }
-                }
-            }
-        }
+        // stage('Checkout') {
+        //     steps {
+        //         script {
+        //             if (fileExists('.git')) {
+        //                 sh 'git reset --hard'
+        //                 sh 'git clean -fd'
+        //                 sh 'git pull origin main'
+        //             } else {
+        //                 git branch: 'main', url: 'https://github.com/dario208/elecdis.git', credentialsId: 'github-credentials-id'
+        //             }
+        //         }
+        //     }
+        // }
 
         stage('Prepare Environment') {
             steps {
