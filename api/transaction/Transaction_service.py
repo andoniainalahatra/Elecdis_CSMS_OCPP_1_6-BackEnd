@@ -69,7 +69,6 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
     met_stop= session_model.metter_stop/1000
     update_tarif_snapshot(last_ts, met_stop, session)
     # add transactions with its price
-    # todo : ceci est à modifier => create transaction by tarif snapshot
     create_and_save_detail_transaction_by_tarif_snapshot(session_model.id, session_db=session)
     # create_transaction_by_session(sessionModel=session_model, session_db=session, can_commit=False)
     session.commit()
@@ -466,10 +465,7 @@ def search_transactions_by_date2(session:Session_db, date_start:date, date_end:d
     return {"data": get_list_session_data_2(transactions, session_db=session), "pagination": pagination.dict()}
 
 def create_and_save_detail_transaction_by_tarif_snapshot(session_id:int, session_db:Session):
-    # todo 1=> get all tarif snapshot by session_id
     list_ts= get_tariff_snapshot_by_session_id(session_id, session_db)
-    print(len(list_ts))
-    # todo 2=> create transaction by tarif snapshot + boucle
     transactions=[]
     for ts in list_ts:
         trans=Transaction(
@@ -481,16 +477,8 @@ def create_and_save_detail_transaction_by_tarif_snapshot(session_id:int, session
             energy_unit=ts.tariff.energy_unit
         )
         transactions.append(trans)
-        print(len(transactions))
-
     session_db.add_all(transactions)
     return transactions
-
-# class MeterValueData(BaseModel):
-#     connectorId: int
-#     transactionId: int
-#     metervalue:float
-#     meterunit:str
 
 def create_metervalue_from_mvdata(mvdata:[],connectorId,transactionId, dateMeter:datetime):
     mv= MeterValueData(connectorId=connectorId,transactionId=transactionId,dateMeter=dateMeter)
@@ -503,7 +491,5 @@ def create_metervalue_from_mvdata(mvdata:[],connectorId,transactionId, dateMeter
                 mv.metervalue=float(i.get('value'))
                 mv.meterunit=i.get('unit')
     return mv
-# session = next(get_session())
-# print(create_and_save_detail_transaction_by_tarif_snapshot(163,session))
-# session.commit()
+
 

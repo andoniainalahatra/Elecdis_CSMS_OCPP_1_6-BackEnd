@@ -48,18 +48,6 @@ def get_last_tarifSnapshot_by_session(session_id:int, session_db:Session):
     except:
         raise Exception ("get_last_tarifSnapshot_by_session problem")
 
-# example metervalue
-# [2,"183f3f04-e08c-4ba6-96ba-523099e7a597",
-# "MeterValues", {"connectorId":1,"transactionId":13,"meterValue":[{"timestamp":"2024-09-26T08:31:29Z","sampledValue":
-# [{"value":"0.0","context":"Sample.Periodic","format":"Raw","measurand":"Current.Import","location":"Outlet","unit":"A"},
-# {"value":"2320.370","context":"Sample.Periodic","format":"Raw","measurand":"Energy.Active.Import.Register","location":"Outlet","unit":"kWh"},
-# {"value":"10.0","context":"Sample.Periodic","format":"Raw","measurand":"SoC","location":"EV","unit":"Percent"},
-# {"value":"0.0","context":"Sample.Periodic","format":"Raw","measurand":"Voltage","location":"Outlet","unit":"V"}]}]}]
-
-# mv microocpp
-# [2,"1000381","MeterValues",{"connectorId":1,"transactionId":144,"meterValue":[{"timestamp":"2024-10-23T10:02:42.580Z","sampledValue":[
-# {"value":"9047","context":"Sample.Periodic","measurand":"Energy.Active.Import.Register","unit":"Wh"},
-# {"value":"10995.82","context":"Sample.Periodic","measurand":"Power.Active.Import","unit":"W"}]}]}]
 def manage_tarif_snapshots_on_meter_values(meterValuesDatas:MeterValueData,session_db:Session,loggin):
     last_ts= get_last_tarifSnapshot_by_session(meterValuesDatas.transactionId,session_db)
     loggin.info(f"last_ts => {last_ts}")
@@ -85,7 +73,3 @@ def get_tariff_snapshot_by_session_id(session_id:int, session_db:Session):
     except Exception as  e:
         raise e
 
-# mv = MeterValueData(connectorId=1, transactionId=161, metervalue='10863', meterunit='Wh', dateMeter=datetime.now())
-# session= next(get_session())
-# print(manage_tarif_snapshots_on_meter_values(mv, session_db=session))
-# session.commit()
