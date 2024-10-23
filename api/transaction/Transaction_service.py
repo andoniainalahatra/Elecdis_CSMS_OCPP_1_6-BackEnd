@@ -458,3 +458,14 @@ def search_transactions_by_date2(session:Session_db, date_start:date, date_end:d
     transactions = session.exec(query.offset(pagination.offset).limit(pagination.limit)).all()
 
     return {"data": get_list_session_data_2(transactions, session_db=session), "pagination": pagination.dict()}
+
+def create_and_save_detail_transaction(session_id:int, session_db:Session):
+    # todo
+    pass
+
+def manage_tarif_snapshots_on_meter_values(meterValuesDatas):
+    # todo 1 - get last ts
+    # todo 2 - get_current tariff by date
+    # todo 3 - compare tarifs t-initial and t-on-mv
+    # todo 3 - if comparaison == false => update last TS and create a new one
+    pass

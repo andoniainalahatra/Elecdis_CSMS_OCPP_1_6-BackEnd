@@ -223,7 +223,8 @@ class TariffSnapshot(TimestampMixin, table=True):
     tariff_id: int = Field(foreign_key="tariff.id")
     effective_date: date
     session_id: int = Field(foreign_key="session.id")
-
+    meter_start:Optional[float] =None
+    meter_stop:Optional[float] =None
     tariff: Optional["Tariff"] = Relationship(back_populates="tariff_snapshots")
     session: Optional["Session"] = Relationship(back_populates="tariff_snapshots")
 
