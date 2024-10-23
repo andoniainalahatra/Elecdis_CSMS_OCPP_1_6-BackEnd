@@ -1,0 +1,77 @@
+
+
+
+
+pipeline {
+    agent any
+
+    stages {
+        // stage('Checkout') {
+        //     steps {
+        //         script {
+        //             if (fileExists('.git')) {
+        //                 sh 'git reset --hard'
+        //                 sh 'git clean -fd'
+        //                 sh 'git pull origin main'
+        //             } else {
+        //                 git branch: 'main', url: 'https://github.com/dario208/elecdis.git', credentialsId: 'github-credentials-id'
+        //             }
+        //         }
+        //     }
+        // }
+
+        stage('Prepare Environment') {
+            steps {
+                script {
+                    // Renommer .env.backend en .env
+                    sh 'mv .env.backend .env'
+                    
+                    // Créer le dossier versions dans alembic si non existant
+                    sh 'mkdir -p alembic/versions'
+                }
+            }
+        }
+
+        
+
+        // stage('Test Backend') {
+        //     steps {
+        //         script {
+        //             // Exécuter les tests unitaires du backend
+        //             dir('backend') {
+        //                 sh 'sudo docker run $BACKEND_IMAGE pytest tests/'
+        //             }
+        //         }
+        //     }
+        // }
+
+        stage('Deploy to Server') {
+            steps {
+                script {
+                    // Vérifier la présence des conteneurs Docker
+                    def containers = sh(script: "docker ps -q", returnStdout: true).trim()
+
+                    if (containers) {
+                        // Arrêter et supprimer les conteneurs existants
+                        sh 'docker-compose down'
+                    }
+
+                    // Mettre à jour et démarrer les services Docker en local
+                    sh 'docker-compose up --build -d'   // Démarre les conteneurs en arrière-plan
+
+                    // Vérifier l'état des services Docker
+                    sh 'docker-compose ps'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Services démarrés avec succès avec Docker Compose et Alembic migration exécutée !'
+        }
+        failure {
+            echo 'Erreur lors du démarrage des services Docker Compose ou de l\'exécution d\'Alembic migration.'
+        }
+    }
+}
