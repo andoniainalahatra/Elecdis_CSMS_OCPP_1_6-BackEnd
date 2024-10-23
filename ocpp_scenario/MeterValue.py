@@ -25,9 +25,9 @@ class MeterValue:
         # logging.info(f"======{kwargs.get('transactionId')}======>>>>>>>>>:{meterValue} ")
         session_db=next(get_session())
         logging.info(f" ===><===error {meterValue[0].get('timestamp')}")
-        meter= create_metervalue_from_mvdata(mvdata=meterValue[0].get('sampledValue'),connectorId=connectorId,transactionId=kwargs.get('transactionId'),dateMeter= datetime.strptime(meterValue[0].get('timestamp'), "%Y-%m-%dT%H:%M:%S.%fZ"))
+        meter= create_metervalue_from_mvdata(mvdata=meterValue[0].get('sampledValue'),connectorId=connectorId,transactionId=int(kwargs.get('transactionId')),dateMeter= datetime.strptime(meterValue[0].get('timestamp'), "%Y-%m-%dT%H:%M:%S.%fZ"))
         logging.info(f" => metter => {meter}")
-        logging.info(f" => => => {manage_tarif_snapshots_on_meter_values(meter, session_db)}")
+        logging.info(f" => => => {manage_tarif_snapshots_on_meter_values(meter, session_db,logging)}")
         session_db.commit()
         return {}
 

@@ -22,8 +22,8 @@ def create_new_tarif_snapshot(session_id:int, date_start:datetime, meter_start:f
         session.add(tarifStapshot)
         session.flush()
         return tarifStapshot
-    except:
-        raise Exception("something about creaing tarifsnapshot went wrong")
+    except Exception as e:
+        raise e
 
 
 def compare_tarifs(tarif1:Tariff, tarif2:Tariff):
@@ -60,20 +60,32 @@ def get_last_tarifSnapshot_by_session(session_id:int, session_db:Session):
 # [2,"1000381","MeterValues",{"connectorId":1,"transactionId":144,"meterValue":[{"timestamp":"2024-10-23T10:02:42.580Z","sampledValue":[
 # {"value":"9047","context":"Sample.Periodic","measurand":"Energy.Active.Import.Register","unit":"Wh"},
 # {"value":"10995.82","context":"Sample.Periodic","measurand":"Power.Active.Import","unit":"W"}]}]}]
-def manage_tarif_snapshots_on_meter_values(meterValuesDatas:MeterValueData,session_db:Session):
+def manage_tarif_snapshots_on_meter_values(meterValuesDatas:MeterValueData,session_db:Session,loggin):
     last_ts= get_last_tarifSnapshot_by_session(meterValuesDatas.transactionId,session_db)
+    loggin.info(f"last_ts => {last_ts}")
     ts=None
     if last_ts is None:
+        loggin.info("last_ts is None")
         ts=create_new_tarif_snapshot(meterValuesDatas.transactionId,meterValuesDatas.dateMeter,meterValuesDatas.metervalue,session_db,None)
     else :
         current_tarif= get_one_tarif_from_trans_end(meterValuesDatas.dateMeter,session_db)
-        tarif= get_tarif_by_id(current_tarif.id,session_db)
+        loggin.info(f"current_tarif => {current_tarif}")
+        tarif= get_tarif_by_id(last_ts.tariff_id,session_db)
+        loggin.info(f"tarif => {tarif}")
         if tarif.id!=current_tarif.id:
+            loggin.info("tarif.id!=current_tarif.id")
             ts=update_tarif_snapshot(last_ts,meterValuesDatas.metervalue,session_db)
             ts=create_new_tarif_snapshot(meterValuesDatas.transactionId,meterValuesDatas.dateMeter,meterValuesDatas.metervalue,session_db,None)
 
     return ts
 
-mv = MeterValueData(connectorId=1, transactionId=161, metervalue='10863', meterunit='Wh', dateMeter=datetime(2024, 10, 23, 15, 49, 59, 779000))
+def get_tariff_snapshot_by_session_id(session_id:int, session_db:Session):
+    try:
+        return session_db.exec(select(TariffSnapshot).where(TariffSnapshot.session_id==session_id)).all()
+    except Exception as  e:
+        raise e
 
-print(manage_tarif_snapshots_on_meter_values(mv, session_db=next(get_session())))
+# mv = MeterValueData(connectorId=1, transactionId=161, metervalue='10863', meterunit='Wh', dateMeter=datetime.now())
+# session= next(get_session())
+# print(manage_tarif_snapshots_on_meter_values(mv, session_db=session))
+# session.commit()

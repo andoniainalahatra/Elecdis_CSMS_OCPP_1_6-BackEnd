@@ -64,8 +64,14 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
     conne=Connector_update(valeur=somme,status=StatusEnum.available,time=datetime.now())
     logging.info(f"connector_id:{somme}+{session_model.connector_id}")
     update_connector_valeur(session_model.connector_id,conne,session,can_commit=False)
+    # update the last tariff snapshot
+    last_ts = get_last_tarifSnapshot_by_session(session_model.id, session)
+    met_stop= session_model.metter_stop/1000
+    update_tarif_snapshot(last_ts, met_stop, session)
     # add transactions with its price
-    create_transaction_by_session(sessionModel=session_model, session_db=session, can_commit=False)
+    # todo : ceci est à modifier => create transaction by tarif snapshot
+    create_and_save_detail_transaction_by_tarif_snapshot(session_model.id, session_db=session)
+    # create_transaction_by_session(sessionModel=session_model, session_db=session, can_commit=False)
     session.commit()
     session.refresh(session_model)
     return session_model
@@ -459,9 +465,26 @@ def search_transactions_by_date2(session:Session_db, date_start:date, date_end:d
 
     return {"data": get_list_session_data_2(transactions, session_db=session), "pagination": pagination.dict()}
 
-def create_and_save_detail_transaction(session_id:int, session_db:Session):
-    # todo
-    pass
+def create_and_save_detail_transaction_by_tarif_snapshot(session_id:int, session_db:Session):
+    # todo 1=> get all tarif snapshot by session_id
+    list_ts= get_tariff_snapshot_by_session_id(session_id, session_db)
+    print(len(list_ts))
+    # todo 2=> create transaction by tarif snapshot + boucle
+    transactions=[]
+    for ts in list_ts:
+        trans=Transaction(
+            session_id=session_id,
+            currency=ts.tariff.currency,
+            unit_price=ts.tariff.price,
+            total_price=(ts.meter_stop-ts.meter_start)*ts.tariff.price,
+            consumed_energy=(ts.meter_stop-ts.meter_start),
+            energy_unit=ts.tariff.energy_unit
+        )
+        transactions.append(trans)
+        print(len(transactions))
+
+    session_db.add_all(transactions)
+    return transactions
 
 # class MeterValueData(BaseModel):
 #     connectorId: int
@@ -473,9 +496,14 @@ def create_metervalue_from_mvdata(mvdata:[],connectorId,transactionId, dateMeter
     mv= MeterValueData(connectorId=connectorId,transactionId=transactionId,dateMeter=dateMeter)
     for i in mvdata:
         if i.get('measurand') == "Energy.Active.Import.Register":
-            mv.metervalue=i.get('value')
-            mv.meterunit=i.get('unit')
+            if i.get('unit') == "Wh":
+                mv.metervalue=float(i.get('value'))/1000
+                mv.meterunit="kWh"
+            else:
+                mv.metervalue=float(i.get('value'))
+                mv.meterunit=i.get('unit')
     return mv
-
-
+# session = next(get_session())
+# print(create_and_save_detail_transaction_by_tarif_snapshot(163,session))
+# session.commit()
 
