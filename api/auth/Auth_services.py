@@ -178,8 +178,8 @@ def validate_user(user, session: Session, check_email):
             raise EmailException(f"Email {user.email} already exists")
     # check subscription
     subscription = session.exec(select(Subscription).where(Subscription.id == user.id_subscription)).first()
-    if subscription is None:
-        raise SubscriptionException(f"Subscription {user.id_subscription} does not exist")
+    # if subscription is None:
+        # raise SubscriptionException(f"Subscription {user.id_subscription} does not exist")
     # check userGroup
     userGroup = session.exec(select(UserGroup).where(UserGroup.id == user.id_user_group)).first()
     # check partner
