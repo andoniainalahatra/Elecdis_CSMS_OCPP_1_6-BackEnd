@@ -8,7 +8,7 @@ from core.database import get_session
 from models.Pagination import Pagination, Data_display
 from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction
 from api.transaction.Transaction_models import Session_create, Session_update, Session_list_model, Transaction_details, \
-    Session_data_affichage
+    Session_data_affichage, MeterValueData
 from api.RFID.RFID_Services import get_user_by_tag
 from api.Connector.Connector_services import get_connector_by_id
 from api.Connector.Connector_services import somme_metervalues,update_connector_valeur
@@ -463,9 +463,19 @@ def create_and_save_detail_transaction(session_id:int, session_db:Session):
     # todo
     pass
 
-def manage_tarif_snapshots_on_meter_values(meterValuesDatas):
-    # todo 1 - get last ts
-    # todo 2 - get_current tariff by date
-    # todo 3 - compare tarifs t-initial and t-on-mv
-    # todo 3 - if comparaison == false => update last TS and create a new one
-    pass
+# class MeterValueData(BaseModel):
+#     connectorId: int
+#     transactionId: int
+#     metervalue:float
+#     meterunit:str
+
+def create_metervalue_from_mvdata(mvdata:[],connectorId,transactionId, dateMeter:datetime):
+    mv= MeterValueData(connectorId=connectorId,transactionId=transactionId,dateMeter=dateMeter)
+    for i in mvdata:
+        if i.get('measurand') == "Energy.Active.Import.Register":
+            mv.metervalue=i.get('value')
+            mv.meterunit=i.get('unit')
+    return mv
+
+
+

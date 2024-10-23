@@ -49,3 +49,10 @@ class Transaction_details(BaseModel):
     currency: Optional[str]=""
     energy_unit: Optional[str]=""
     consumed_energy: Optional[float]=0
+
+class MeterValueData(BaseModel):
+    connectorId: int
+    transactionId: int
+    metervalue:float
+    meterunit:str
+    dateMeter:datetime

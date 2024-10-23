@@ -4,6 +4,7 @@ from typing import Optional
 
 from sqlmodel import Session, select, text
 
+from api.transaction.Transaction_models import MeterValueData
 from models.elecdis_model import Tariff, TariffSnapshot
 
 
@@ -18,16 +19,22 @@ def create_new_tarif_snapshot(session_id:int, date_start:datetime, meter_start:f
             tarif = get_one_tarif_from_trans_end(date_start,session)
         tarifStapshot = TariffSnapshot(tariff_if = tarif.id, effective_date=date_start, session_id=session_id, meter_start=meter_start)
         session.add(tarifStapshot)
+        session.flush()
+        return tarifStapshot
     except:
         raise Exception("something about creaing tarifsnapshot went wrong")
 
 
 def compare_tarifs(tarif1:Tariff, tarif2:Tariff):
+    if tarif1 is None or tarif2 is None:
+        return False
     return tarif1.id==tarif2.id
 
 def update_tarif_snapshot(tarifSnapshot:TariffSnapshot, meterStop:float, session:Session):
     tarifSnapshot.meter_stop=meterStop
     session.add(tarifSnapshot)
+    session.flush()
+    return tarifSnapshot
 
 def get_last_tarifSnapshot_by_session(session_id:int, session_db:Session):
     try:
@@ -36,3 +43,25 @@ def get_last_tarifSnapshot_by_session(session_id:int, session_db:Session):
     except:
         raise Exception ("get_last_tarifSnapshot_by_session problem")
 
+# example metervalue
+# [2,"183f3f04-e08c-4ba6-96ba-523099e7a597",
+# "MeterValues", {"connectorId":1,"transactionId":13,"meterValue":[{"timestamp":"2024-09-26T08:31:29Z","sampledValue":
+# [{"value":"0.0","context":"Sample.Periodic","format":"Raw","measurand":"Current.Import","location":"Outlet","unit":"A"},
+# {"value":"2320.370","context":"Sample.Periodic","format":"Raw","measurand":"Energy.Active.Import.Register","location":"Outlet","unit":"kWh"},
+# {"value":"10.0","context":"Sample.Periodic","format":"Raw","measurand":"SoC","location":"EV","unit":"Percent"},
+# {"value":"0.0","context":"Sample.Periodic","format":"Raw","measurand":"Voltage","location":"Outlet","unit":"V"}]}]}]
+
+# mv microocpp
+# [2,"1000381","MeterValues",{"connectorId":1,"transactionId":144,"meterValue":[{"timestamp":"2024-10-23T10:02:42.580Z","sampledValue":[
+# {"value":"9047","context":"Sample.Periodic","measurand":"Energy.Active.Import.Register","unit":"Wh"},
+# {"value":"10995.82","context":"Sample.Periodic","measurand":"Power.Active.Import","unit":"W"}]}]}]
+def manage_tarif_snapshots_on_meter_values(meterValuesDatas:MeterValueData,session_db:Session):
+    last_ts= get_last_tarifSnapshot_by_session(meterValuesDatas.transactionId,session_db)
+    ts=None
+    current_tarif= get_one_tarif_from_trans_end(meterValuesDatas.dateMeter,session_db)
+    if compare_tarifs(last_ts.tariff,current_tarif):
+        ts=update_tarif_snapshot(last_ts,meterValuesDatas.metervalue,session_db)
+    else:
+        ts=create_new_tarif_snapshot(meterValuesDatas.transactionId,meterValuesDatas.dateMeter,meterValuesDatas.metervalue,session_db,current_tarif)
+
+    return ts
