@@ -286,7 +286,6 @@ class User_reset_code(TimestampMixin, table=True):
 class Rfid_usage_history(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     tag_id: int = Field(foreign_key="tag.id")
-    session_id: Optional[int] = Field(foreign_key="session.id", default=True)
     action: str
     tag : Optional["Tag"] = Relationship(back_populates="rfid_usage_history")
     __table_args__ = (Index("ix_rfid_usage_history_id", "id"),)
