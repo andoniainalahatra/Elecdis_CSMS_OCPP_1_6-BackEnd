@@ -24,10 +24,9 @@ class MeterValue:
     async def on_metervalues(self,charge_point_instance,connectorId,meterValue,**kwargs):
         # logging.info(f"======{kwargs.get('transactionId')}======>>>>>>>>>:{meterValue} ")
         session_db=next(get_session())
-        # logging.info(f" ===><===error {meterValue[0].get('sampledValue')}")
-        meter= create_metervalue_from_mvdata(mvdata=meterValue[0].get('sampledValue'),connectorId=connectorId,transactionId=kwargs.get('transactionId'),dateMeter= datetime.strptime(kwargs.get('timestamp'), "%Y-%m-%dT%H:%M:%S.%fZ"))
+        logging.info(f" ===><===error {meterValue[0].get('timestamp')}")
+        meter= create_metervalue_from_mvdata(mvdata=meterValue[0].get('sampledValue'),connectorId=connectorId,transactionId=kwargs.get('transactionId'),dateMeter= datetime.strptime(meterValue[0].get('timestamp'), "%Y-%m-%dT%H:%M:%S.%fZ"))
         logging.info(f" => metter => {meter}")
-
         logging.info(f" => => => {manage_tarif_snapshots_on_meter_values(meter, session_db)}")
         session_db.commit()
         return {}

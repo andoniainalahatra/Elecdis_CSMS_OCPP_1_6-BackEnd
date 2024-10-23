@@ -16,8 +16,8 @@ class UserRegister(BaseModel):
     confirm_password: str
     email: str
     phone:str
-    id_subscription: Optional[int]=None
-    id_user_group: Optional[int]=None
+    id_subscription: Optional[int] = None
+    id_user_group: Optional[int] = None
     id_partner: Optional[int] = None
 
 class LoginData(BaseModel):

@@ -5,6 +5,7 @@ from typing import Optional
 from sqlmodel import Session, select, text
 
 from api.transaction.Transaction_models import MeterValueData
+from core.database import get_session
 from models.elecdis_model import Tariff, TariffSnapshot
 
 
@@ -17,7 +18,7 @@ def create_new_tarif_snapshot(session_id:int, date_start:datetime, meter_start:f
     try:
         if tarif==None:
             tarif = get_one_tarif_from_trans_end(date_start,session)
-        tarifStapshot = TariffSnapshot(tariff_if = tarif.id, effective_date=date_start, session_id=session_id, meter_start=meter_start)
+        tarifStapshot = TariffSnapshot(tariff_id = tarif.id, effective_date=date_start, session_id=session_id, meter_start=meter_start)
         session.add(tarifStapshot)
         session.flush()
         return tarifStapshot
@@ -35,10 +36,14 @@ def update_tarif_snapshot(tarifSnapshot:TariffSnapshot, meterStop:float, session
     session.add(tarifSnapshot)
     session.flush()
     return tarifSnapshot
-
+def get_tarif_by_id(id_tarif:int,session:Session):
+    try:
+        return session.exec(select(Tariff).where(Tariff.id==id_tarif)).first()
+    except:
+        raise Exception("get_tarif_by_id problem")
 def get_last_tarifSnapshot_by_session(session_id:int, session_db:Session):
     try:
-        ts= session_db.exec(select(TariffSnapshot).where(TariffSnapshot.meter_stop==None,TariffSnapshot.session_id==session_id))
+        ts = session_db.exec(select(TariffSnapshot).where(TariffSnapshot.meter_stop==None,TariffSnapshot.session_id==session_id)).first()
         return ts
     except:
         raise Exception ("get_last_tarifSnapshot_by_session problem")
@@ -58,10 +63,17 @@ def get_last_tarifSnapshot_by_session(session_id:int, session_db:Session):
 def manage_tarif_snapshots_on_meter_values(meterValuesDatas:MeterValueData,session_db:Session):
     last_ts= get_last_tarifSnapshot_by_session(meterValuesDatas.transactionId,session_db)
     ts=None
-    current_tarif= get_one_tarif_from_trans_end(meterValuesDatas.dateMeter,session_db)
-    if compare_tarifs(last_ts.tariff,current_tarif):
-        ts=update_tarif_snapshot(last_ts,meterValuesDatas.metervalue,session_db)
-    else:
-        ts=create_new_tarif_snapshot(meterValuesDatas.transactionId,meterValuesDatas.dateMeter,meterValuesDatas.metervalue,session_db,current_tarif)
+    if last_ts is None:
+        ts=create_new_tarif_snapshot(meterValuesDatas.transactionId,meterValuesDatas.dateMeter,meterValuesDatas.metervalue,session_db,None)
+    else :
+        current_tarif= get_one_tarif_from_trans_end(meterValuesDatas.dateMeter,session_db)
+        tarif= get_tarif_by_id(current_tarif.id,session_db)
+        if tarif.id!=current_tarif.id:
+            ts=update_tarif_snapshot(last_ts,meterValuesDatas.metervalue,session_db)
+            ts=create_new_tarif_snapshot(meterValuesDatas.transactionId,meterValuesDatas.dateMeter,meterValuesDatas.metervalue,session_db,None)
 
     return ts
+
+mv = MeterValueData(connectorId=1, transactionId=161, metervalue='10863', meterunit='Wh', dateMeter=datetime(2024, 10, 23, 15, 49, 59, 779000))
+
+print(manage_tarif_snapshots_on_meter_values(mv, session_db=next(get_session())))

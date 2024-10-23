@@ -45,7 +45,7 @@ async def register_user(registered_user: UserRegister):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return login(user.email, registered_user.password, session)
 
-@router.post("/register_client", response_model=Token)
+@router.post("/register_client")
 async def register_user(registered_user: UserRegister):
     if registered_user.password != registered_user.confirm_password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,

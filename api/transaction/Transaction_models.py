@@ -53,6 +53,6 @@ class Transaction_details(BaseModel):
 class MeterValueData(BaseModel):
     connectorId: int
     transactionId: int
-    metervalue:float
-    meterunit:str
-    dateMeter:datetime
+    metervalue:Optional[float]=0
+    meterunit:Optional[str]="kWh"
+    dateMeter:Optional[datetime]=datetime.now()
