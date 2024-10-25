@@ -516,4 +516,3 @@ def get_unit(unit):
         return UNIT_WH
 sess=next(get_session())
 
-print(update_session_service_on_stopTransaction(session= sess, session_data=Session_update(end_time=datetime.now(), metter_stop=1000, transaction_id=169, reason="Local")))
