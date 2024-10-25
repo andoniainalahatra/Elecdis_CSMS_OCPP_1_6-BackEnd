@@ -176,7 +176,6 @@ def get_user_by_tag(session : Session, tag : str):
         return None
     return tag.user
 
-# todo : add history to rfid / status / get details rfid
 
 def get_last_used_date_rfid(session: Session, id_tag: int):
     date_last_used = session.exec(select(func.max(Rfid_usage_history.created_at)).where(Rfid_usage_history.tag_id == id_tag)).first()
