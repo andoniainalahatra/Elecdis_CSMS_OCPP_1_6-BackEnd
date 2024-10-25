@@ -64,5 +64,11 @@ def debit_credit_to_user_account_after_session(session: Session_db, idtag: int, 
     todebit=get_sum_energy_consumed_in_a_session_with_applied_tarifs( session_id,session)
     debiter_user_credit(session=session, amount=todebit, idtag=idtag, session_id=session_id)
     return get_user_credit_solde_by_idTag(session=session, idtag=idtag)
-# session= next(get_session())
-# print(debit_credit_to_user_account_after_session(session, 23,165))
+
+def check_if_sold_out(session: Session_db, idtag: int, value_to_add: float):
+    print((get_user_credit_solde_by_idTag(session,idtag).solde-value_to_add))
+    if (get_user_credit_solde_by_idTag(session,idtag).solde-value_to_add)<=1:
+        return True
+    return False
+
+
