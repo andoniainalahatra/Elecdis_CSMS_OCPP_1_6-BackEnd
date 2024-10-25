@@ -93,6 +93,19 @@ def authenticate_user(session: Session, email: str, password: str):
         print("wrong password")
         return False
     return user
+def authenticate_user_client(session: Session, email: str, password: str):
+    user = get_user_from_email(email=email, session=session)
+    user_group = session.exec(select(UserGroup).where(UserGroup.id == user.id_user_group)).first()
+
+    if not user:
+        print("no user found")
+        return False
+    if not verify_password(password, user.password):
+        print(verify_password(password, user.password))
+        print("wrong password")
+        return False
+    return user
+
 
 
 def create_access_token(data: dict):
@@ -188,7 +201,7 @@ def register(newUser: User, session: Session):
     session.refresh(newUser)
     return newUser
 
-
+# admin login
 def login(username: str, password: str, session: Session):
     user = authenticate_user(session, username, password)
     if not user:
@@ -198,6 +211,14 @@ def login(username: str, password: str, session: Session):
     return {
         "access_token": access_token, "token_type": "bearer","user":user_data}
 
+def login_user_client(username:str, password:str, session:Session):
+    user = authenticate_user_client(session, username, password)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password")
+    user_data = get_user_data(user)
+    access_token = create_access_token(data={"sub": user.email})
+    return {
+        "access_token": access_token, "token_type": "bearer","user":user_data}
 
 def update_user(user_to_update:UserUpdate, session: Session, user_id: int):
     user: User = get_user_by_id(user_id, session)

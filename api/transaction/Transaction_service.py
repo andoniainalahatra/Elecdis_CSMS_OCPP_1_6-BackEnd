@@ -3,12 +3,15 @@ from typing import List
 
 from sqlmodel import Session as Session_db, select,func,case
 
+from api.userCredit.UserCredit_services import debit_credit_to_user_account_after_session
+from api.users.UserServices import get_user_by_id, get_user_by_id_trans
 from core.database import get_session
+from core.utils import UNIT_KWH, UNIT_WH
 from models.Pagination import Pagination, Data_display
-from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction
+from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction, Historique_session
 from api.transaction.Transaction_models import Session_create, Session_update, Session_list_model, Transaction_details, \
-    Session_data_affichage
-from api.RFID.RFID_Services import get_user_by_tag
+    Session_data_affichage, MeterValueData
+from api.RFID.RFID_Services import get_user_by_tag, get_by_tag
 from api.Connector.Connector_services import get_connector_by_id
 from api.Connector.Connector_services import somme_metervalues,update_connector_valeur
 from api.Connector.Connector_models import Connector_update
@@ -40,6 +43,11 @@ def create_session_service(session: Session_db, session_data: Session_create):
         metter_stop=session_data.metter_stop,
         tag=session_data.user_tag
     )
+    # create Historique session
+    # RAHA ATAO ETO IO DE LASA MICREER HISTORIQUE ISAKY NY MICREER SESSION IZY
+    # history= Historique_session(
+    #     expiry_date
+    # )
     session.add(session_model)
     session.commit()
     session.refresh(session_model)
@@ -52,19 +60,33 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
         raise {"message": f"Session with id {session_data.transaction_id} not found."}
     session_model.end_time = session_data.end_time
     session_model.metter_stop = session_data.metter_stop
-    session_model.reason = session_data.reason
+    if session_model.reason!=None:
+        session_model.reason += session_data.reason
+    else:
+        session_model.reason = session_data.reason
     session_model.updated_at=datetime.now()
     session.add(session_model)
     session.flush()
+
     # save historic mettervalue
     create_mettervalue_history(session=session, session_data=session_model, can_commit=False)
     session.flush()
     somme=somme_metervalues(session_model.connector_id,session)
     conne=Connector_update(valeur=somme,status=StatusEnum.available,time=datetime.now())
-    logging.info(f"connector_id:{somme}+{session_model.connector_id}")
     update_connector_valeur(session_model.connector_id,conne,session,can_commit=False)
+
+    # update the last tariff snapshot
+    last_ts = get_last_tarifSnapshot_by_session(session_model.id, session)
+    met_stop= session_model.metter_stop/1000
+    update_tarif_snapshot(last_ts, met_stop, session)
     # add transactions with its price
-    create_transaction_by_session(sessionModel=session_model, session_db=session, can_commit=False)
+
+    create_and_save_detail_transaction_by_tarif_snapshot(session_model.id, session_db=session)
+    # create_transaction_by_session(sessionModel=session_model, session_db=session, can_commit=False)
+    tag=get_by_tag(session,session_model.tag)
+    # debiter le compte user pour la consommation
+    debit_credit_to_user_account_after_session(session, tag.id, session_model.id)
+
     session.commit()
     session.refresh(session_model)
     return session_model
@@ -157,7 +179,8 @@ def get_status_session(session:Session_db, session_id:int):
 def get_session_data_2(session:SessionModel, session_db:Session_db):
 
     transaction_datas = get_sums_transactions(session_db, session.id)
-    user=get_user_by_tag(session_db,session.tag)
+    # user=get_user_by_tag(session_db,session.tag)
+    user=get_user_by_id_trans(session.user_id,session_db)
     status=get_status_session(session_db,session.id)
     # print(session)
     # print(f'==> {user}')
@@ -178,7 +201,6 @@ def get_session_data_2(session:SessionModel, session_db:Session_db):
         )
     else :
         data = Session_data_affichage()
-
     return data
 
 def get_list_session_data_2 (sessions:List[SessionModel], session_db:Session_db):
@@ -355,4 +377,142 @@ def get_session_data_chart(session :Session_db, date_here:date):
         }
         result_dicts.append(temp)
     return result_dicts
+
+def search_transactions_by_date(session:Session_db, date_start:date, date_end:date, montant_fin, montant_debut, energy_fin, energy_debut,page, number_items):
+    query = select(SessionModel).where(SessionModel.id != -1)
+    query_count = select(func.count(SessionModel.id))
+
+    # Handle montant filters
+    if montant_debut is not None and montant_fin is not None:
+        # Modify the query to include grouping and handle aggregates properly
+        query = (
+            query
+            .join(Transaction, Transaction.session_id == SessionModel.id)
+            .group_by(SessionModel.id, SessionModel.created_at, SessionModel.updated_at)
+            .having(func.sum(Transaction.total_price) >= montant_debut, func.sum(Transaction.total_price) <= montant_fin)
+        )
+
+        # Subquery to count the sessions based on the total price range
+        total_price_subquery = (
+            select(
+                SessionModel.id,
+                func.sum(Transaction.total_price).label("total_price")
+            )
+            .join(Transaction, Transaction.session_id == SessionModel.id)
+            .group_by(SessionModel.id)
+            .subquery()
+        )
+        query_count = (
+            select(func.count())
+            .select_from(total_price_subquery)
+            .where(total_price_subquery.c.total_price.between(montant_debut, montant_fin))
+        )
+
+    # Handle date filters
+    if date_start is not None and date_end is not None:
+        query = query.where(func.date(SessionModel.start_time).between(date_start, date_end))
+        query_count = query_count.where(func.date(SessionModel.start_time).between(date_start, date_end))
+
+    # Handle energy filters
+    if energy_debut is not None and energy_fin is not None:
+        query = query.where((SessionModel.metter_stop - SessionModel.metter_start) / 1000 >= energy_debut,
+                            (SessionModel.metter_stop - SessionModel.metter_start) / 1000 <= energy_fin)
+        query_count = query_count.where(SessionModel.metter_start >= energy_debut,
+                                        SessionModel.metter_stop <= energy_fin)
+
+    # Final query adjustments
+    query_count = query_count.where(SessionModel.id != -1)
+
+    # Pagination logic
+    pagination = Pagination(page=page, limit=number_items)
+    print(query_count)
+    count = session.exec(query_count).one()
+    print("hehe",count)
+    pagination.total_items = count
+    transactions = session.exec(query.offset(pagination.offset).limit(pagination.limit)).all()
+
+    return {"data": get_list_session_data_2(transactions, session_db=session), "pagination": pagination.dict()}
+def search_transactions_by_date2(session:Session_db, date_start:date, date_end:date, montant_fin, montant_debut, energy_fin, energy_debut,page, number_items):
+    query = select(SessionModel).where(SessionModel.id != -1)
+    query_count = select(func.count(SessionModel.id))
+
+    # Handle montant filters
+    if montant_debut is not None and montant_fin is not None:
+        query = (
+            query
+            .join(Transaction, Transaction.session_id == SessionModel.id)
+            .group_by(SessionModel.id, SessionModel.created_at, SessionModel.updated_at)
+            .having(func.sum(Transaction.total_price) >= montant_debut, func.sum(Transaction.total_price) <= montant_fin)
+        )
+
+        # Adjust count query to count grouped rows properly
+        query_count = (
+            select(func.count(SessionModel.id))
+            .join(Transaction, Transaction.session_id == SessionModel.id)
+            .group_by(SessionModel.id, SessionModel.created_at, SessionModel.updated_at)
+            .having(func.sum(Transaction.total_price) >= montant_debut, func.sum(Transaction.total_price) <= montant_fin)
+        )
+
+    # Handle date filters
+    if date_start is not None and date_end is not None:
+        query = query.where(func.date(SessionModel.start_time).between(date_start, date_end))
+        query_count = query_count.where(func.date(SessionModel.start_time).between(date_start, date_end))
+
+    # Handle energy filters
+    if energy_debut is not None and energy_fin is not None:
+        query = query.where((SessionModel.metter_stop - SessionModel.metter_start) / 1000 >= energy_debut,
+                            (SessionModel.metter_stop - SessionModel.metter_start) / 1000 <= energy_fin)
+        query_count = query_count.where(SessionModel.metter_start >= energy_debut,
+                                        SessionModel.metter_stop <= energy_fin)
+
+    # Final query adjustments
+    query_count = query_count.where(SessionModel.id != -1)
+
+    # Pagination logic
+    pagination = Pagination(page=page, limit=number_items)
+
+    # Use `.scalar()` to fetch the count
+    count = len(session.exec(query).all())
+    pagination.total_items = count if count is not None else 0
+
+    # Fetch the transactions with pagination
+    transactions = session.exec(query.offset(pagination.offset).limit(pagination.limit)).all()
+
+    return {"data": get_list_session_data_2(transactions, session_db=session), "pagination": pagination.dict()}
+
+def create_and_save_detail_transaction_by_tarif_snapshot(session_id:int, session_db:Session):
+    list_ts= get_tariff_snapshot_by_session_id(session_id, session_db)
+    transactions=[]
+    for ts in list_ts:
+        trans=Transaction(
+            session_id=session_id,
+            currency=ts.tariff.currency,
+            unit_price=ts.tariff.price,
+            total_price=(ts.meter_stop-ts.meter_start)*ts.tariff.price,
+            consumed_energy=(ts.meter_stop-ts.meter_start),
+            energy_unit=ts.tariff.energy_unit
+        )
+        trans.consumed_energy_added=trans.consumed_energy*ts.tariff.multiplier
+        transactions.append(trans)
+    session_db.add_all(transactions)
+    return transactions
+
+def create_metervalue_from_mvdata(mvdata:[],connectorId,transactionId, dateMeter:datetime):
+    mv= MeterValueData(connectorId=connectorId,transactionId=transactionId,dateMeter=dateMeter)
+    for i in mvdata:
+        if i.get('measurand') == "Energy.Active.Import.Register":
+            if i.get('unit') == "Wh":
+                mv.metervalue=float(i.get('value'))/1000
+                mv.meterunit=UNIT_KWH
+            else:
+                mv.metervalue=float(i.get('value'))
+                mv.meterunit=get_unit(i.get('unit'))
+    return mv
+
+def get_unit(unit):
+    if unit =="kwh" or unit=="KWh" or unit=="kWh" or unit=="KWH":
+        return UNIT_KWH
+    if unit =="Wh" or unit=="wh" or unit=="WH" or unit=="Wh":
+        return UNIT_WH
+sess=next(get_session())
 

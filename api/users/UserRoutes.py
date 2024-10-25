@@ -23,6 +23,12 @@ def get_list_client(
         number_items: Optional[int] = 50
 ):
     return get_all_clients(session=session,page=page, number_items=number_items)
+@router.get("/client_no_pg")
+def get_list_client(
+        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
+        session: Session=Depends(get_session)
+):
+    return get_all_clients_no_pg(session=session)
 
 @router.get("/")
 def get_all(
@@ -64,9 +70,9 @@ def get_all_current_user_tags(token: str = Depends(oauth_2_scheme), session: Ses
     tags = get_user_tags_list(user=user, session=session, page=page, number_items=number_items)
     return tags
 
-@router.get("/tags/{user_id}")
+@router.get("/RFID/{user_id}")
 async def get_all_user_tags_by_user_id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
-    tags = get_user_tags_list(user=await get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
+    tags = get_user_tags_list(user= get_user_by_id(user_id, session), session=session, page=page, number_items=number_items)
     return tags
 @router.get("/current/profile")
 def get_current_user_profile(
@@ -79,11 +85,11 @@ def get_current_user_profile(
 @router.get("/profile/{user_id}")
 def get_user_profile_by_id(user_id: int, session: Session = Depends(get_session)):
     user = get_user_by_id(user_id, session)
-    return {"user": get_user_data(user)}
+    return {"user": get_user_profile_data(user,session)}
 
 @router.put("/profile/{id}")
 def update_user_profile(user_to_update:UserUpdate,id:int,
-                        # token: str = Depends(oauth_2_scheme),
+                        token: str = Depends(oauth_2_scheme),
                         session: Session = Depends(get_session)):
     try :
         update_user(user_to_update, session,id)
@@ -93,13 +99,17 @@ def update_user_profile(user_to_update:UserUpdate,id:int,
 
 # @router.post
 @router.get("/{id}")
-def get_user_by_id_route(id: int, session: Session = Depends(get_session)):
+def get_user_by_id_route(id: int,
+                         token: str = Depends(oauth_2_scheme),
+                         session: Session = Depends(get_session)):
         user = get_user_by_id(id, session)
         if user is None:
             raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="User not found")
         return set_update_user_data(user)
 @router.delete("/{id}")
-def delete_user_by_id(id: int, session: Session = Depends(get_session)):
+def delete_user_by_id(id: int,
+                      _: Annotated[bool, Depends(RoleChecker(allowed_roles=[ADMIN_NAME]))],
+                      session: Session = Depends(get_session)):
     try:
         delete_user(id, session)
     except Exception as e:
@@ -127,7 +137,10 @@ def count_all_new_clients_based_on_month_and_years(
             "year": year}
 
 @router.post("/import_users_from_csv")
-async def import_users_from_csv(file: UploadFile = File(...), session: Session = Depends(get_session)):
+async def import_users_from_csv(
+        _: Annotated[bool, Depends(RoleChecker(allowed_roles=[ADMIN_NAME]))],
+        file: UploadFile = File(...),
+                                session: Session = Depends(get_session)):
     message = await upload_user_from_csv(file, session)
     if message.get("logs"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(message["logs"]))

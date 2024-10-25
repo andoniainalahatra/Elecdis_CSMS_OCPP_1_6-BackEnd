@@ -132,6 +132,7 @@ class Tariff(TimestampMixin, table=True):
     start_hour: time
     end_hour: time
     price: float
+    multiplier: Optional[float]=1
     currency: Optional[str]
     energy_unit: Optional[str]
 
@@ -148,6 +149,7 @@ class Transaction(TimestampMixin, table=True):
     unit_price: float
     total_price: float
     consumed_energy: float
+    consumed_energy_added:Optional[float]=Field(default=0)
     currency: Optional[str]
     energy_unit: Optional[str]
     session: Optional["Session"] = Relationship(back_populates="transactions")
@@ -223,7 +225,8 @@ class TariffSnapshot(TimestampMixin, table=True):
     tariff_id: int = Field(foreign_key="tariff.id")
     effective_date: date
     session_id: int = Field(foreign_key="session.id")
-
+    meter_start:Optional[float] =None
+    meter_stop:Optional[float] =None
     tariff: Optional["Tariff"] = Relationship(back_populates="tariff_snapshots")
     session: Optional["Session"] = Relationship(back_populates="tariff_snapshots")
 
@@ -240,8 +243,11 @@ class Session(TimestampMixin, table=True):
     metter_stop: Optional[float]
     tag: Optional[str]
     reason: Optional[str]
+    id_historique_session: Optional[int] = Field(default=None, foreign_key="historique_session.id")
+
 
     connector: Optional["Connector"] = Relationship(back_populates="sessions")
+    historique_session: Optional["Historique_session"] = Relationship(back_populates="session")
     user: Optional["User"] = Relationship(back_populates="sessions")
     tariff_snapshots: List["TariffSnapshot"] = Relationship(back_populates="session")
     transactions: List["Transaction"] = Relationship(back_populates="session")
@@ -257,12 +263,12 @@ class Tag(TimestampMixin, table=True):
     status: Optional[str] = StatusEnum.active
 
     user: Optional["User"] = Relationship(back_populates="tags")
+    user_credit: List["UserCredit"] = Relationship(back_populates="tag")
     rfid_usage_history: List["Rfid_usage_history"] = Relationship(back_populates="tag")
 
     __table_args__ = (Index("ix_tag_id", "id"),)
 
 
-# TEST MANY TO MANY RELATIONSHIP
 
 class Subscription_History(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -288,3 +294,19 @@ class Rfid_usage_history(TimestampMixin, table=True):
     action: str
     tag : Optional["Tag"] = Relationship(back_populates="rfid_usage_history")
     __table_args__ = (Index("ix_rfid_usage_history_id", "id"),)
+
+class Historique_session(TimestampMixin, table=True):
+    id:Optional[int]= Field(default=None,primary_key=True)
+    expiry_date:Optional[datetime]
+    session : List["Session"] = Relationship(back_populates="historique_session")
+
+class UserCredit(TimestampMixin, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    id_tag: int = Field(foreign_key="tag.id")
+    credit_in:Optional[float]=0
+    credit_out:Optional[float]=0
+    reason:Optional[str]
+    credit_unit:Optional[str]=Field(default=UNIT_KWH)
+
+    tag: Optional["Tag"] = Relationship(back_populates="user_credit")
+    __table_args__ = (Index("ix_user_credit_id", "id"),)
