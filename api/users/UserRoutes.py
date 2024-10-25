@@ -23,6 +23,12 @@ def get_list_client(
         number_items: Optional[int] = 50
 ):
     return get_all_clients(session=session,page=page, number_items=number_items)
+@router.get("/client_no_pg")
+def get_list_client(
+        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
+        session: Session=Depends(get_session)
+):
+    return get_all_clients_no_pg(session=session)
 
 @router.get("/")
 def get_all(

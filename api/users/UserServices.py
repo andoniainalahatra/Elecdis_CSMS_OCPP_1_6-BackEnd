@@ -113,6 +113,27 @@ def get_all_clients(session: Session = Depends(get_session), page: int = 1, numb
     clients = session.exec(query).all()
     return {"data": get_list_user_data(clients), "pagination": pagination.dict()}
 
+def get_all_clients_no_pg(session: Session = Depends(get_session), page: int = 1, number_items: int = 50):
+    pagination = Pagination(page=page, limit=number_items)
+    # Query to count total items
+    total_items_query = select(func.count(User.id)).join(UserGroup).where(
+        UserGroup.name != ADMIN_NAME, User.state != DELETED_STATE)
+    total_items = session.exec(total_items_query).one()
+    pagination.total_items = total_items
+
+    query = (select(User).join(UserGroup).
+             where(UserGroup.name != ADMIN_NAME, User.state != DELETED_STATE))
+    # query = query.offset(pagination.offset).limit(pagination.limit)
+    clients = session.exec(query).all()
+    all=[]
+    for i in get_list_user_data(clients):
+            all.append({
+                "id":i.id,
+                "name":i.first_name+" "+i.last_name,
+            })
+
+    return { "data":all }
+
 
 def get_new_clients_lists(session: Session = Depends(get_session), mois: Optional[int] = None,
                           annee: int = datetime.utcnow().year, page=1, number_items=50
