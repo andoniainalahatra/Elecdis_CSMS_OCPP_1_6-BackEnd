@@ -12,6 +12,7 @@ from api.trigger.Trigger_messages_routes import router as trigger_routes
 from api.Configuration.Configuration_routes import router as configuration_routes, possible_keys
 from api.dashboard.Dashboard_routes import router as dashboard_routes
 from api.Historique_defaillance.Historique_defaillance_routes import router as historique_defaillance_routes
+from api.userCredit.UserCredit_routes import router as userCredit_routes
 routers = APIRouter()
 
 config_description = str(possible_keys)
@@ -29,3 +30,4 @@ routers.include_router(configuration_routes, prefix="/configuration", tags=["Cha
 routers.include_router(historique_defaillance_routes, prefix="/historique_defaillance", tags=["Historique Defaillance"] )
 
 routers.include_router(dashboard_routes, prefix="/dashboard", tags=["Dashboard"])
+routers.include_router(userCredit_routes, prefix="/account", tags=["User Account"])

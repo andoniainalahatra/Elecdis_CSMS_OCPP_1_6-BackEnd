@@ -3,13 +3,15 @@ from typing import List
 
 from sqlmodel import Session as Session_db, select,func,case
 
+from api.userCredit.UserCredit_services import debit_credit_to_user_account_after_session
 from api.users.UserServices import get_user_by_id, get_user_by_id_trans
 from core.database import get_session
+from core.utils import UNIT_KWH, UNIT_WH
 from models.Pagination import Pagination, Data_display
-from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction
+from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction, Historique_session
 from api.transaction.Transaction_models import Session_create, Session_update, Session_list_model, Transaction_details, \
     Session_data_affichage, MeterValueData
-from api.RFID.RFID_Services import get_user_by_tag
+from api.RFID.RFID_Services import get_user_by_tag, get_by_tag
 from api.Connector.Connector_services import get_connector_by_id
 from api.Connector.Connector_services import somme_metervalues,update_connector_valeur
 from api.Connector.Connector_models import Connector_update
@@ -41,6 +43,11 @@ def create_session_service(session: Session_db, session_data: Session_create):
         metter_stop=session_data.metter_stop,
         tag=session_data.user_tag
     )
+    # create Historique session
+    # RAHA ATAO ETO IO DE LASA MICREER HISTORIQUE ISAKY NY MICREER SESSION IZY
+    # history= Historique_session(
+    #     expiry_date
+    # )
     session.add(session_model)
     session.commit()
     session.refresh(session_model)
@@ -53,24 +60,33 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
         raise {"message": f"Session with id {session_data.transaction_id} not found."}
     session_model.end_time = session_data.end_time
     session_model.metter_stop = session_data.metter_stop
-    session_model.reason = session_data.reason
+    if session_model.reason!=None:
+        session_model.reason += session_data.reason
+    else:
+        session_model.reason = session_data.reason
     session_model.updated_at=datetime.now()
     session.add(session_model)
     session.flush()
+
     # save historic mettervalue
     create_mettervalue_history(session=session, session_data=session_model, can_commit=False)
     session.flush()
     somme=somme_metervalues(session_model.connector_id,session)
     conne=Connector_update(valeur=somme,status=StatusEnum.available,time=datetime.now())
-    logging.info(f"connector_id:{somme}+{session_model.connector_id}")
     update_connector_valeur(session_model.connector_id,conne,session,can_commit=False)
+
     # update the last tariff snapshot
     last_ts = get_last_tarifSnapshot_by_session(session_model.id, session)
     met_stop= session_model.metter_stop/1000
     update_tarif_snapshot(last_ts, met_stop, session)
     # add transactions with its price
+
     create_and_save_detail_transaction_by_tarif_snapshot(session_model.id, session_db=session)
     # create_transaction_by_session(sessionModel=session_model, session_db=session, can_commit=False)
+    tag=get_by_tag(session,session_model.tag)
+    # debiter le compte user pour la consommation
+    debit_credit_to_user_account_after_session(session, tag.id, session_model.id)
+
     session.commit()
     session.refresh(session_model)
     return session_model
@@ -476,6 +492,7 @@ def create_and_save_detail_transaction_by_tarif_snapshot(session_id:int, session
             consumed_energy=(ts.meter_stop-ts.meter_start),
             energy_unit=ts.tariff.energy_unit
         )
+        trans.consumed_energy_added=trans.consumed_energy*ts.tariff.multiplier
         transactions.append(trans)
     session_db.add_all(transactions)
     return transactions
@@ -486,10 +503,17 @@ def create_metervalue_from_mvdata(mvdata:[],connectorId,transactionId, dateMeter
         if i.get('measurand') == "Energy.Active.Import.Register":
             if i.get('unit') == "Wh":
                 mv.metervalue=float(i.get('value'))/1000
-                mv.meterunit="kWh"
+                mv.meterunit=UNIT_KWH
             else:
                 mv.metervalue=float(i.get('value'))
-                mv.meterunit=i.get('unit')
+                mv.meterunit=get_unit(i.get('unit'))
     return mv
 
+def get_unit(unit):
+    if unit =="kwh" or unit=="KWh" or unit=="kWh" or unit=="KWH":
+        return UNIT_KWH
+    if unit =="Wh" or unit=="wh" or unit=="WH" or unit=="Wh":
+        return UNIT_WH
+sess=next(get_session())
 
+print(update_session_service_on_stopTransaction(session= sess, session_data=Session_update(end_time=datetime.now(), metter_stop=1000, transaction_id=169, reason="Local")))
