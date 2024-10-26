@@ -265,8 +265,9 @@ class Tag(TimestampMixin, table=True):
     user: Optional["User"] = Relationship(back_populates="tags")
     user_credit: List["UserCredit"] = Relationship(back_populates="tag")
     rfid_usage_history: List["Rfid_usage_history"] = Relationship(back_populates="tag")
+    historique_session: List["Historique_session"] = Relationship(back_populates="tag")
 
-    __table_args__ = (Index("ix_tag_id", "id"),)
+__table_args__ = (Index("ix_tag_id", "id"),)
 
 
 
@@ -298,6 +299,13 @@ class Rfid_usage_history(TimestampMixin, table=True):
 class Historique_session(TimestampMixin, table=True):
     id:Optional[int]= Field(default=None,primary_key=True)
     expiry_date:Optional[datetime]
+    start_time:Optional[datetime]= Field(default=None)
+    end_time:Optional[datetime]= Field(default=None)
+    state : int = Field(default=0)
+    idtag:Optional[int] = Field(default=None, foreign_key="tag.id")
+
+
+    tag : Optional["Tag"] = Relationship(back_populates="historique_session")
     session : List["Session"] = Relationship(back_populates="historique_session")
 
 class UserCredit(TimestampMixin, table=True):
