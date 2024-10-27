@@ -301,7 +301,7 @@ class Historique_session(TimestampMixin, table=True):
     expiry_date:Optional[datetime]
     start_time:Optional[datetime]= Field(default=None)
     end_time:Optional[datetime]= Field(default=None)
-    state : int = Field(default=0)
+    state : Optional[int] = Field(default=0)
     idtag:Optional[int] = Field(default=None, foreign_key="tag.id")
 
 

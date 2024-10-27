@@ -3,6 +3,8 @@ from typing import List
 
 from sqlmodel import Session as Session_db, select,func,case
 
+from api.Historique_session.Historique_session_services import get_history_for_a_session, \
+    end_a_history_session_in_a_transaction
 from api.userCredit.UserCredit_services import debit_credit_to_user_account_after_session, check_if_sold_out
 from api.users.UserServices import get_user_by_id, get_user_by_id_trans
 from core.database import get_session
@@ -31,10 +33,15 @@ def create_session_service(session: Session_db, session_data: Session_create):
     user = get_user_by_tag(tag=session_data.user_tag, session=session)
     if user is None:
         raise {"message": f"User with tag {session_data.user_tag} not found."}
+    #  get tag
+    tag = get_by_tag(session,session_data.user_tag)
     # check connector
     connector = get_connector_by_id(id_connector=session_data.connector_id, session=session)
     if connector is None:
         raise {"message": f"Connector with id {session_data.connector_id} not found."}
+
+    # get historique session
+    hs = get_history_for_a_session(tag.id,session)
     # create session
     session_model = SessionModel(
         start_time=session_data.start_time,
@@ -43,13 +50,10 @@ def create_session_service(session: Session_db, session_data: Session_create):
         user_id=user.id,
         metter_start=session_data.metter_start,
         metter_stop=session_data.metter_stop,
-        tag=session_data.user_tag
+        tag=session_data.user_tag,
+        id_historique_session=hs.id
     )
-    # create Historique session
-    # RAHA ATAO ETO IO DE LASA MICREER HISTORIQUE ISAKY NY MICREER SESSION IZY
-    # history= Historique_session(
-    #     expiry_date
-    # )
+
     session.add(session_model)
     session.flush()
     ts=create_new_tarif_snapshot(session_model.id,session_model.start_time,session_model.metter_start/1000,session,None)
@@ -90,6 +94,8 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
     # debiter le compte user pour la consommation
     debit_credit_to_user_account_after_session(session, tag.id, session_model.id)
 
+    # terminer la HS :
+    end_a_history_session_in_a_transaction(session_model,session)
     session.commit()
     session.refresh(session_model)
     return session_model
