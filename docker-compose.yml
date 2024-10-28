@@ -4,7 +4,15 @@ services:
   #Si tu veux utiliser le serveur web dans Docker, décommenter les lignes suivantes
   web:
     build: .
-    command: sh -c "alembic revision --autogenerate -m 'Add new migration' && alembic upgrade head && uvicorn core.main:app --host 0.0.0.0 --port 8085"
+    command: >
+        sh -c "echo 'Waiting for database...'; until nc -z elecdis-db 5432; do echo 'Database not ready...'; sleep 1; done;
+               echo 'Database ready!' &&
+              #  alembic revision --autogenerate -m 'Add new migration' &&
+               # alembic upgrade head &&
+               uvicorn core.main:app --host 0.0.0.0 --port 8085"
+
+
+
     volumes:
       - .:/app
     ports:
@@ -26,7 +34,7 @@ services:
     restart: always
     container_name: elecdis-db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - backend_postgres_data:/var/lib/postgresql/data
     env_file:
       - .env
     ports:
@@ -119,5 +127,6 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
+  backend_postgres_data:  # Déclare le volume ici
+    external: true
   mongo_data:
