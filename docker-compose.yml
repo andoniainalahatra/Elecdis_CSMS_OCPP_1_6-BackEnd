@@ -26,7 +26,7 @@ services:
     restart: always
     container_name: elecdis-db
     volumes:
-      - /var/lib/docker/volumes/backend_postgres_data/_data
+      - backend_postgres_data:/var/lib/postgresql/data
     env_file:
       - .env
     ports:
