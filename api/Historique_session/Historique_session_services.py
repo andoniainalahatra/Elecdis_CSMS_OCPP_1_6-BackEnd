@@ -118,7 +118,7 @@ hs = Historique_session(
     state=0,
     idtag=23
 )
-sm = ses.exec(select(Session_model).where(Session_model.id == 174)).first()
-print(f" session : {sm}")
-print(end_a_history_session_in_a_transaction(sm,ses))
-ses.commit()
+# sm = ses.exec(select(Session_model).where(Session_model.id == 174)).first()
+# print(f" session : {sm}")
+# print(end_a_history_session_in_a_transaction(sm,ses))
+# ses.commit()
