@@ -119,5 +119,5 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
+  backend_postgres_data:
   mongo_data:
