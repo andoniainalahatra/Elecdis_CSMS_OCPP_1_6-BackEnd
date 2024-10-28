@@ -119,5 +119,6 @@ networks:
     driver: bridge
 
 volumes:
-  backend_postgres_data:
+  backend_postgres_data:  # Déclare le volume ici
+    external: true
   mongo_data:
