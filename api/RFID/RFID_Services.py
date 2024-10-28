@@ -79,11 +79,11 @@ def delete_rfid_service(id: int, session: Session):
     except Exception as e:
         return {"message": f"Error: {str(e)}"}
 
-def get_all_rfid(session: Session, page: int = 1, number_items: int = 50):
+def get_all_rfid(session: Session, page: int , number_items: int ):
     pagination = Pagination(page=page, limit=number_items)
     total_items = session.exec(select(func.count(Tag.id)).where(cast(Tag.state, Integer) != DELETED_STATE)).one()
     pagination.total_items = total_items
-    return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) != DELETED_STATE)).all(), session), "pagination": pagination.dict()}
+    return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) != DELETED_STATE).offset(pagination.offset).limit(pagination.limit)).all(), session), "pagination": pagination.dict()}
 
 def get_deleted_rfid(session: Session, page: int = 1, number_items: int = 50):
     pagination = Pagination(page=page, limit=number_items)
