@@ -13,7 +13,7 @@ from api.Configuration.Configuration_routes import router as configuration_route
 from api.dashboard.Dashboard_routes import router as dashboard_routes
 from api.Historique_defaillance.Historique_defaillance_routes import router as historique_defaillance_routes
 from api.userCredit.UserCredit_routes import router as userCredit_routes
-# from api.Historique_session.Historique_session_routes import router as history_session_routes
+from api.Historique_session.Historique_session_routes import router as history_session_routes
 routers = APIRouter()
 
 config_description = str(possible_keys)
@@ -32,4 +32,4 @@ routers.include_router(historique_defaillance_routes, prefix="/historique_defail
 
 routers.include_router(dashboard_routes, prefix="/dashboard", tags=["Dashboard"])
 routers.include_router(userCredit_routes, prefix="/account", tags=["User Account"])
-# routers.include_router(history_session_routes, prefix="/historique_session", tags=["historiques sessions "])
+routers.include_router(history_session_routes, prefix="/historique_session", tags=["historiques sessions "])

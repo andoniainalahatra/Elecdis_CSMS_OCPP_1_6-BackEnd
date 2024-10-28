@@ -91,6 +91,21 @@ def get_all_session_from_history(id_history:int, session_db:Session_db, paginati
     pagination.total_items=query_count
     return {"data":get_list_session_data_2(query,session_db),"pagination":pagination}
 
+def get_all_HS_by_user(id_user:int, session_db:Session_db, pagination:Pagination):
+    query_count=len(session_db.exec(select(Historique_session)
+                                .join(Session_model)
+                                .where(Session_model.user_id == id_user)
+                                .distinct() ).all())
+    query = session_db.exec(
+        select(Historique_session)
+        .join(Session_model)
+        .where(Session_model.user_id == id_user)
+        .distinct(Historique_session.id)
+        .limit(pagination.limit)
+        .offset(pagination.offset)
+    ).all()
+    pagination.total_items=query_count
+    return {"data":get_lists_historique_datas(query,session_db),"pagination":pagination}
 
 # *************** TESTS ***************
 
