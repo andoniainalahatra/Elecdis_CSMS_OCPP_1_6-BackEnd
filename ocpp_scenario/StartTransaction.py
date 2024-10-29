@@ -26,7 +26,8 @@ class StartTransaction:
                 start_time=timestamp,
                 connector_id=f"{connectorId}{charge_point_instance.id}",
                 user_tag=idTag,
-                metter_start=meterStart)
+                metter_start=meterStart,
+            )
             transaction= create_session_service( session=next(get_session()), session_data=session_data)
         except Exception as e:
             logging.error(f"Error:{e}")

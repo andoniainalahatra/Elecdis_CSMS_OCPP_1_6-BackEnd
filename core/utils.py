@@ -11,6 +11,10 @@ DELETED_STATE = 0
 DEFAULT_STATE = 1
 DEFAULT_USER_PASSWORD = "password"
 ADMIN_NAME='admin'
+UNIT_KWH='KWh'
+UNIT_WH='Wh'
+CURRENCY_AR="Ar"
+MIN_SOLDE=0
 
 FILE_PATH=os.path.dirname(os.path.abspath(__file__))
 

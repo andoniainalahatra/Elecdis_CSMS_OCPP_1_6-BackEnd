@@ -12,13 +12,15 @@ COPY .env ./
 # Installer les dépendances et nettoyer les fichiers temporaires pour minimiser la taille de l'image
 RUN pip install -r requirements.txt \
     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y netcat-openbsd
+
 
 # Copier le code source et les fichiers de configuration d'Alembic
 COPY . .
 COPY alembic.ini alembic/
 
 # Exposer le port de l'application
-EXPOSE 8080
+EXPOSE 8085
 
 # Démarrer l'application
-CMD ["uvicorn", "core.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "core.main:app", "--host", "0.0.0.0", "--port", "8085"]

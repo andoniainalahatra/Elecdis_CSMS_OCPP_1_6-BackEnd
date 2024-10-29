@@ -49,7 +49,7 @@ def read_historique_defaillance(session : Session, page: int = 1, number_items: 
         historique_data = [
             {
 
-                "historique_id": record[0].id,  
+                "id": record[0].id,
                 "historique_erreur":record[0].Error_code,
                 "historique_description":record[0].Description,
                 "heure_erreur":record[0].time,
