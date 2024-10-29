@@ -2,7 +2,7 @@
 from datetime import time, datetime
 from typing import Optional
 
-from sqlmodel import Session, select, text
+from sqlmodel import Session, select, text,desc
 
 from api.transaction.Transaction_models import MeterValueData
 from core.database import get_session
@@ -18,6 +18,7 @@ def create_new_tarif_snapshot(session_id:int, date_start:datetime, meter_start:f
     try:
         if tarif==None:
             tarif = get_one_tarif_from_trans_end(date_start,session)
+            print(f"{tarif}")
         tarifStapshot = TariffSnapshot(tariff_id = tarif.id, effective_date=date_start, session_id=session_id, meter_start=meter_start)
         session.add(tarifStapshot)
         session.flush()
@@ -43,7 +44,7 @@ def get_tarif_by_id(id_tarif:int,session:Session):
         raise Exception("get_tarif_by_id problem")
 def get_last_tarifSnapshot_by_session(session_id:int, session_db:Session):
     try:
-        ts = session_db.exec(select(TariffSnapshot).where(TariffSnapshot.meter_stop==None,TariffSnapshot.session_id==session_id)).first()
+        ts = session_db.exec(select(TariffSnapshot).where(TariffSnapshot.session_id==session_id).order_by(desc(TariffSnapshot.created_at))).first()
         return ts
     except:
         raise Exception ("get_last_tarifSnapshot_by_session problem")

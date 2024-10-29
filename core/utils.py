@@ -15,6 +15,8 @@ UNIT_KWH='KWh'
 UNIT_WH='Wh'
 CURRENCY_AR="Ar"
 MIN_SOLDE=0
+EXPIRATION_HOUR=8
+HISTORIQUE_URGENCY=3
 
 FILE_PATH=os.path.dirname(os.path.abspath(__file__))
 

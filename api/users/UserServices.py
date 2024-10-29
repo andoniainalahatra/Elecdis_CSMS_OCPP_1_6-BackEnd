@@ -12,7 +12,7 @@ from core.database import get_session
 from core.utils import *
 from models.Pagination import Pagination
 from models.elecdis_model import User, Tag, Transaction, UserGroup, Session as SessionModel, Subscription, Partner
-from sqlmodel import Session, select, text, func, cast, String
+from sqlmodel import Session, select, text, func, cast, String, desc
 from api.exeptions.EmailException import EmailException
 from pydantic import BaseModel
 from passlib.context import CryptContext
@@ -108,7 +108,7 @@ def get_all_clients(session: Session = Depends(get_session), page: int = 1, numb
     pagination.total_items = total_items
 
     query = (select(User).join(UserGroup).
-             where(UserGroup.name != ADMIN_NAME, User.state != DELETED_STATE))
+             where(UserGroup.name != ADMIN_NAME, User.state != DELETED_STATE)).order_by(desc(User.id))
     query = query.offset(pagination.offset).limit(pagination.limit)
     clients = session.exec(query).all()
     return {"data": get_list_user_data(clients), "pagination": pagination.dict()}

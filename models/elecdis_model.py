@@ -43,6 +43,7 @@ class ChargePoint(TimestampMixin, table=True):
     longitude: float
     state: int
     firmware_version: Optional[str]
+    historique_status_chargepoint: List["Historique_status_chargepoint"] = Relationship(back_populates="chargepoint")
 
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
 
@@ -54,7 +55,13 @@ class Historique_defailllance(TimestampMixin, table=True):
     Description:Optional[str]
     etat:Optional[str]
 
-
+class Historique_status_chargepoint(TimestampMixin, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    # le id an'le connecteur no eto fa tsy le connector_id
+    charge_point_id: Optional[str] = Field(foreign_key="chargepoint.id")
+    statut: str
+    time_last_statut: datetime = Field(nullable=False)
+    chargepoint: Optional["ChargePoint"] = Relationship(back_populates="historique_status_chargepoint")
 # Pour les autres classes, les modifications restent les mêmes.
 
 class Connector(TimestampMixin, table=True):
@@ -265,8 +272,9 @@ class Tag(TimestampMixin, table=True):
     user: Optional["User"] = Relationship(back_populates="tags")
     user_credit: List["UserCredit"] = Relationship(back_populates="tag")
     rfid_usage_history: List["Rfid_usage_history"] = Relationship(back_populates="tag")
+    historique_session: List["Historique_session"] = Relationship(back_populates="tag")
 
-    __table_args__ = (Index("ix_tag_id", "id"),)
+__table_args__ = (Index("ix_tag_id", "id"),)
 
 
 
@@ -298,6 +306,13 @@ class Rfid_usage_history(TimestampMixin, table=True):
 class Historique_session(TimestampMixin, table=True):
     id:Optional[int]= Field(default=None,primary_key=True)
     expiry_date:Optional[datetime]
+    start_time:Optional[datetime]= Field(default=None)
+    end_time:Optional[datetime]= Field(default=None)
+    state : Optional[int] = Field(default=0)
+    idtag:Optional[int] = Field(default=None, foreign_key="tag.id")
+
+
+    tag : Optional["Tag"] = Relationship(back_populates="historique_session")
     session : List["Session"] = Relationship(back_populates="historique_session")
 
 class UserCredit(TimestampMixin, table=True):

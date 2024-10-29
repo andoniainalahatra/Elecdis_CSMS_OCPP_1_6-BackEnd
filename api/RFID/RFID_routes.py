@@ -1,5 +1,6 @@
 import csv
 import io
+from typing import Optional
 
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
 from sqlalchemy.orm import Session
@@ -54,7 +55,7 @@ async def import_from_csv(file: UploadFile = File(...), session : Session = Depe
 @router.get("/all")
 def get_all_rfid_list(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
-        session: Session = Depends(get_session), page: int = 1, number_items: int = 50):
+        session: Session = Depends(get_session), page: Optional[int] = 1, number_items: Optional[int] = 50):
     return get_all_rfid(session, page, number_items)
 
 @router.get("/deleted")

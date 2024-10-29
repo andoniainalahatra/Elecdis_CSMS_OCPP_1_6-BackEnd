@@ -3,7 +3,9 @@ from typing import List
 
 from sqlmodel import Session as Session_db, select,func,case
 
-from api.userCredit.UserCredit_services import debit_credit_to_user_account_after_session
+from api.Historique_session.Historique_session_services import get_history_for_a_session, \
+    end_a_history_session_in_a_transaction
+from api.userCredit.UserCredit_services import debit_credit_to_user_account_after_session, check_if_sold_out
 from api.users.UserServices import get_user_by_id, get_user_by_id_trans
 from core.database import get_session
 from core.utils import UNIT_KWH, UNIT_WH
@@ -15,11 +17,13 @@ from api.RFID.RFID_Services import get_user_by_tag, get_by_tag
 from api.Connector.Connector_services import get_connector_by_id
 from api.Connector.Connector_services import somme_metervalues,update_connector_valeur
 from api.Connector.Connector_models import Connector_update
-from api.CP.CP_services import update_cp,somme_metervalue_connector
+from api.CP.CP_services import update_cp, somme_metervalue_connector, send_remoteStopTransaction
 from api.CP.CP_models import Cp_update
 from api.tarifs.Tarifs_services import *
 from models.elecdis_model import StatusEnum
 import logging
+
+from ocpp_scenario.RemoteStopTransaction import RemoteStopTransaction
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,11 +33,18 @@ def create_session_service(session: Session_db, session_data: Session_create):
     user = get_user_by_tag(tag=session_data.user_tag, session=session)
     if user is None:
         raise {"message": f"User with tag {session_data.user_tag} not found."}
+    #  get tag
+    tag = get_by_tag(session,session_data.user_tag)
     # check connector
     connector = get_connector_by_id(id_connector=session_data.connector_id, session=session)
     if connector is None:
         raise {"message": f"Connector with id {session_data.connector_id} not found."}
+
+    # get historique session
+    hs = get_history_for_a_session(tag.id,session)
     # create session
+    print(f"user id {user.id}")
+    print(f"tag id {hs.id}")
     session_model = SessionModel(
         start_time=session_data.start_time,
         end_time=session_data.end_time,
@@ -41,14 +52,17 @@ def create_session_service(session: Session_db, session_data: Session_create):
         user_id=user.id,
         metter_start=session_data.metter_start,
         metter_stop=session_data.metter_stop,
-        tag=session_data.user_tag
+        tag=session_data.user_tag,
+        id_historique_session=hs.id
     )
-    # create Historique session
-    # RAHA ATAO ETO IO DE LASA MICREER HISTORIQUE ISAKY NY MICREER SESSION IZY
-    # history= Historique_session(
-    #     expiry_date
-    # )
+    print("tsy mety eto ")
+
     session.add(session_model)
+    session.flush()
+    print("session_model",session_model)
+
+    ts=create_new_tarif_snapshot(session_model.id,session_model.start_time,session_model.metter_start/1000,session,None)
+    print(ts)
     session.commit()
     session.refresh(session_model)
     return session_model
@@ -60,9 +74,7 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
         raise {"message": f"Session with id {session_data.transaction_id} not found."}
     session_model.end_time = session_data.end_time
     session_model.metter_stop = session_data.metter_stop
-    if session_model.reason!=None:
-        session_model.reason += session_data.reason
-    else:
+    if session_model.reason==None:
         session_model.reason = session_data.reason
     session_model.updated_at=datetime.now()
     session.add(session_model)
@@ -75,8 +87,10 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
     conne=Connector_update(valeur=somme,status=StatusEnum.available,time=datetime.now())
     update_connector_valeur(session_model.connector_id,conne,session,can_commit=False)
 
+    print(session_model.id)
     # update the last tariff snapshot
     last_ts = get_last_tarifSnapshot_by_session(session_model.id, session)
+    print(f"last ts {last_ts}")
     met_stop= session_model.metter_stop/1000
     update_tarif_snapshot(last_ts, met_stop, session)
     # add transactions with its price
@@ -87,6 +101,8 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
     # debiter le compte user pour la consommation
     debit_credit_to_user_account_after_session(session, tag.id, session_model.id)
 
+    # terminer la HS :
+    end_a_history_session_in_a_transaction(session_model,session)
     session.commit()
     session.refresh(session_model)
     return session_model
@@ -497,6 +513,20 @@ def create_and_save_detail_transaction_by_tarif_snapshot(session_id:int, session
     session_db.add_all(transactions)
     return transactions
 
+async def stop_transactions_on_sold_out(session: Session_db, idtag: int, session_id: int, metervalue: float, charge_point_id):
+    list_sn = get_tariff_snapshot_by_session_id(session_id, session)
+    total_energy=0
+    for ts in list_sn:
+        if ts.meter_stop is None:
+            ts.meter_stop = metervalue
+        total_energy+=(ts.meter_stop-ts.meter_start)*ts.tariff.multiplier
+        print(f" check if {check_if_sold_out(session, idtag, total_energy)}")
+    if check_if_sold_out(session, idtag, total_energy):
+        session_model = get_session_by_id(session, session_id)
+        session_model.reason = "Credit de recharge insuffisante"
+        await send_remoteStopTransaction(charge_point_id,session_id)
+
+
 def create_metervalue_from_mvdata(mvdata:[],connectorId,transactionId, dateMeter:datetime):
     mv= MeterValueData(connectorId=connectorId,transactionId=transactionId,dateMeter=dateMeter)
     for i in mvdata:
@@ -514,5 +544,4 @@ def get_unit(unit):
         return UNIT_KWH
     if unit =="Wh" or unit=="wh" or unit=="WH" or unit=="Wh":
         return UNIT_WH
-sess=next(get_session())
 

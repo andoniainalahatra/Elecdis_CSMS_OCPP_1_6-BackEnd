@@ -36,12 +36,7 @@ def total_session_charge(session: Session = Depends(get_session)):
 def get_all_sessions(session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=10):
     return get_all_session(session, Pagination(page=page, limit=number_items))
 
-@router.get("/test")
-def test(session: Session = Depends(get_session)):
-    ses= get_session_by_id(session, 1)
-    s=get_sums_transactions(session, 2)
-    print(s)
-    return s
+
 
 @router.get("/average_duration")
 def get_average_duration_of_sessions(session: Session = Depends(get_session)):
@@ -58,7 +53,14 @@ def get_graphes_sessions(session: Session = Depends(get_session), date_selected:
 def search_transactions(date_start:Optional[date]=None, date_end:Optional[date]=None,montant_debut:Optional[float]=None, montant_fin:Optional[float]=None, energy_debut:Optional[float]=None,energy_fin:Optional[float]=None, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
     return search_transactions_by_date(session, date_start, date_end,montant_fin,montant_debut,energy_fin,energy_debut, page, number_items)
 
+@router.get("/test")
+async def test(session: Session = Depends(get_session), id_sess:Optional[int]=1):
+    ses= get_session_by_id(session, id_sess)
+    s=get_sums_transactions(session, id_sess)
+    print(s)
+    await stop_transactions_on_sold_out(session, 23, id_sess, 5.5,"01")
 @router.get("/{user_id}")
 def get_charging_session_by_user_Id(user_id: int, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
     return get_transactions_by_user_id(user_id=user_id, session=session, page=page, number_items=number_items)
+
 

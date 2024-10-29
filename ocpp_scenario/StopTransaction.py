@@ -27,7 +27,8 @@ class StopTransaction:
               transaction_id=transactionId,
               reason=reason
        )
-       transaction= update_session_service_on_stopTransaction(session=next(get_session()), session_data=session_update_data)
+       if transactionId!=-1:
+        transaction= update_session_service_on_stopTransaction(session=next(get_session()), session_data=session_update_data)
        return {
             "idTagInfo":{'status':'Accepted'},
         }
