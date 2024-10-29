@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends,status,HTTPException,UploadFile,File
 from sqlalchemy.orm import Session
-from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp,recherche_cp,send_remoteStopTransaction,send_remoteStartTransaction,graph_conso_energie_cp,graph_trimestriel_conso_energie_cp,graph_semestriel_conso_energie_cp,graph_conso_energie,graph_semestriel_conso_energie,graph_trimestriel_conso_energie,send_getdiagnostic,map_cp,status_cp,create_historique_chargepoint_status
+from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp,recherche_cp,send_remoteStopTransaction,send_remoteStartTransaction,graph_conso_energie_cp,graph_trimestriel_conso_energie_cp,graph_semestriel_conso_energie_cp,graph_conso_energie,graph_semestriel_conso_energie,graph_trimestriel_conso_energie,send_getdiagnostic,map_cp,status_cp,create_historique_chargepoint_status,read_historique_staus_cp,get_average_unavailable_duration_for_date
 from api.CP.CP_models import Cp_create,Cp_update,Historique_status_chargepoint_create
 from datetime import date, datetime
 from core.database import get_session
@@ -171,6 +171,20 @@ def create_histo(create_data:Historique_status_chargepoint_create,session : Sess
       return create_historique_chargepoint_status(create_data,session)
     except Exception as e:
         raise e
+    
+@router.get("/historique_status_chargepoint")
+def read_historique_status_cp(session : Session=Depends(get_session)):
+    try:
+      return read_historique_staus_cp(session)
+    except Exception as e:
+        raise e
+    
+# @router.get("test")
+# def get_average(date:date,session : Session=Depends(get_session)):
+#     try:
+#       return get_average_unavailable_duration_for_date(session,date)
+#     except Exception as e:
+#         raise e
     
 
     
