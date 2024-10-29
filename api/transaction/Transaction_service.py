@@ -55,11 +55,14 @@ def create_session_service(session: Session_db, session_data: Session_create):
         tag=session_data.user_tag,
         id_historique_session=hs.id
     )
+    print("tsy mety eto ")
 
     session.add(session_model)
     session.flush()
-    ts=create_new_tarif_snapshot(session_model.id,session_model.start_time,session_model.metter_start/1000,session,None)
+    print("session_model",session_model)
 
+    ts=create_new_tarif_snapshot(session_model.id,session_model.start_time,session_model.metter_start/1000,session,None)
+    print(ts)
     session.commit()
     session.refresh(session_model)
     return session_model
@@ -84,8 +87,10 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
     conne=Connector_update(valeur=somme,status=StatusEnum.available,time=datetime.now())
     update_connector_valeur(session_model.connector_id,conne,session,can_commit=False)
 
+    print(session_model.id)
     # update the last tariff snapshot
     last_ts = get_last_tarifSnapshot_by_session(session_model.id, session)
+    print(f"last ts {last_ts}")
     met_stop= session_model.metter_stop/1000
     update_tarif_snapshot(last_ts, met_stop, session)
     # add transactions with its price
@@ -515,7 +520,7 @@ async def stop_transactions_on_sold_out(session: Session_db, idtag: int, session
         if ts.meter_stop is None:
             ts.meter_stop = metervalue
         total_energy+=(ts.meter_stop-ts.meter_start)*ts.tariff.multiplier
-        print(check_if_sold_out(session, idtag, total_energy))
+        print(f" check if {check_if_sold_out(session, idtag, total_energy)}")
     if check_if_sold_out(session, idtag, total_energy):
         session_model = get_session_by_id(session, session_id)
         session_model.reason = "Credit de recharge insuffisante"
