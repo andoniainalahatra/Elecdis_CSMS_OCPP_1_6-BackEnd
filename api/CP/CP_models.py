@@ -36,6 +36,9 @@ class Cp_form(BaseModel):
     latitude:float
     longitude:float
     energie_consomme:float
-
+class Historique_status_chargepoint_create(BaseModel):
+    charge_point_id:str
+    status:str
+    time_last_status:datetime
 
    
