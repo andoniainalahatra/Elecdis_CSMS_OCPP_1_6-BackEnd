@@ -66,14 +66,14 @@ class ChargePoint(cp):
 
     async def monitor_heartbeats(self):
         while True:
-            await asyncio.sleep(self.time+62)  
+            await asyncio.sleep(self.time)  
             async with self.lock:
                 elapsed_time = datetime.now() - self.last_heartbeat_time
                 if self.heartbeat_count >= self.min_heartbeats:
                     logging.info(f"Received sufficient heartbeats for {self.id}: {self.heartbeat_count}. Resetting count for next period.")
                     self.heartbeat_count = 0  
                 else:
-                    logging.warning(f"Less than 2 heartbeats received in 102 seconds for {self.id}. Sending stop message.")
+                    logging.warning(f"Less than 10 heartbeats received in 10 seconds for {self.id}. Sending stop message.")
                     await self.stop_charge_point()
                     self.heartbeat_count = 0
                     break  #
@@ -93,6 +93,7 @@ class ChargePoint(cp):
             conne=Connector_update(status=StatusEnum.unavailable,time=datetime.now()+timedelta(hours=3))
             for row in result:
                 update_connector_status(row['id_connecteur'], conne, session)
+            session.commit()
             
         except Exception as e:
             session.rollback() 

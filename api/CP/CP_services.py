@@ -1,5 +1,5 @@
-from api.CP.CP_models import Cp_create,Cp_update,Cp_form
-from models.elecdis_model import ChargePoint,StatusEnum,Connector,Historique_metter_value
+from api.CP.CP_models import Cp_create,Cp_update,Cp_form,Historique_status_chargepoint_create
+from models.elecdis_model import ChargePoint,StatusEnum,Connector,Historique_metter_value,Historique_status_chargepoint
 from sqlmodel import Session, select,func,extract,case
 from models.Pagination import Pagination
 from fastapi import UploadFile
@@ -54,12 +54,23 @@ def update_cp(id_cp:str,cp:Cp_update,session : Session):
     session.refresh(charge)
     return "Modification réussie"
 
-def update_cp_boot(id_cp:str,cp:Cp_update,session : Session):
+def create_historique_chargepoint_status(h:Historique_status_chargepoint_create,session : Session):
+    try:
+        histo:Historique_status_chargepoint=Historique_status_chargepoint(charge_point_id=h.charge_point_id,statut=h.status,time_last_statut=h.time_last_status)
+        session.add(histo)
+        session.commit()
+       
+    except Exception as e:
+        return {"messageError":f"{str(e)}"}
+def update_cp_boot(id_cp:str,cp:Cp_update,session : Session,can_commit=True):
     
     charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
     if charge is None:
         raise Exception(f"CP  with id {id_cp} does not exist.")
-    
+    histo=Historique_status_chargepoint_create(charge_point_id=id_cp,status=charge.status,time_last_status=charge.updated_at)
+    create_historique_chargepoint_status(histo,session)
+    if can_commit:
+        session.commit()
     charge.status=cp.status
     charge.charge_point_model=cp.charge_point_model
     charge.charge_point_vendors=cp.charge_point_vendors
@@ -71,12 +82,16 @@ def update_cp_boot(id_cp:str,cp:Cp_update,session : Session):
     session.refresh(charge)
     return "Modification réussie"
 
-def update_cp_status(id_cp:str,cp:Cp_update,session : Session):
+
+def update_cp_status(id_cp:str,cp:Cp_update,session : Session,can_commit=True):
     
     charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
     if charge is None:
         raise Exception(f"CP  with id {id_cp} does not exist.")
-    
+    histo=Historique_status_chargepoint_create(charge_point_id=id_cp,status=charge.status,time_last_status=charge.updated_at)
+    create_historique_chargepoint_status(histo,session)
+    if can_commit:
+        session.commit()
     charge.status=cp.status
     charge.updated_at=cp.time+ timedelta(hours=3)
     session.add(charge)
@@ -153,7 +168,8 @@ def read_detail_cp(id_cp:str,session:Session):
             Connector.id.label("id_connecteur"),
             ChargePoint.status.label("status_charge_point"),
             Connector.status.label("status_connector"),
-            Connector.valeur.label("energie_delivre")
+            Connector.valeur.label("energie_delivre"),
+            ChargePoint.firmware_version.label("firmware")
         )
         .join(Connector, ChargePoint.id == Connector.charge_point_id)
         .where(Connector.charge_point_id==id_cp)
@@ -170,7 +186,8 @@ def read_detail_cp(id_cp:str,session:Session):
             "status_connector": row.status_connector,
             "charge_point_model":row.charge_point_model,
             "charge_point_vendors":row.charge_point_vendors,
-            "adresse":row.adresse
+            "adresse":row.adresse,
+            "firmware":row.firmware
         }
         for row in result
     ]
@@ -700,6 +717,31 @@ def map_cp(session:Session):
 
     return formatted_result
 
+def status_cp(session:Session):
+  
+    total_unavailable_cp = session.exec(
+        select(func.count(ChargePoint.id)).where(ChargePoint.status == "Unavailable").where(ChargePoint.state==ACTIVE_STATE)
+    ).first()
+    total_charging_cp = session.exec(
+        select(func.count(ChargePoint.id)).where(ChargePoint.status == "Available").where(ChargePoint.state==ACTIVE_STATE)
+    ).first()
+
+    
+    stats = [
+        {
+            "status": "available",
+            "value": total_charging_cp,
+            "fill": "var(--color-available)"
+        },
+        {
+            "status": "unavailable",
+            "value": total_unavailable_cp,
+            "fill": "var(--color-unavailable)"
+        }
+    ]
+    
+    return stats
+    
     
 
 

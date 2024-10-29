@@ -42,6 +42,7 @@ def read_historique_defaillance(session : Session, page: int = 1, number_items: 
         histo = session.exec(
             select(Historique_defailllance,ChargePoint.id,ChargePoint.charge_point_model,ChargePoint.charge_point_vendors,ChargePoint.adresse)
             .join(ChargePoint, ChargePoint.id == Historique_defailllance.charge_point_id)
+            .where(Historique_defailllance.etat==StatusEnum.no_resolve)
             .offset(pagination.offset)
             .limit(pagination.limit)
         ).all()
@@ -52,6 +53,7 @@ def read_historique_defaillance(session : Session, page: int = 1, number_items: 
                 "historique_erreur":record[0].Error_code,
                 "historique_description":record[0].Description,
                 "heure_erreur":record[0].time,
+                "historique_etat":record[0].etat,
                 "charge_point_id": record[1],
                 "charge_point_model": record[2],
                 "charge_point_vendors": record[3],
@@ -63,7 +65,7 @@ def read_historique_defaillance(session : Session, page: int = 1, number_items: 
             select(
                 func.count(Historique_defailllance.id).label("nombre")
                  
-            ).select_from(Historique_defailllance)).one()
+            ).where(Historique_defailllance.etat==StatusEnum.no_resolve).select_from(Historique_defailllance)).one()
         pagination.total_items = count
         return {"data": historique_data, "pagination": pagination.dict()}
     except Exception as e:
