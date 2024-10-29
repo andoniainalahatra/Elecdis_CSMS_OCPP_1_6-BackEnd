@@ -1,10 +1,12 @@
 from datetime import timedelta
 
+from api.CP.CP_services import send_remoteStartTransaction
 from api.Historique_session.Historique_session_models import historique_session_data
 from models.elecdis_model import Historique_session, Session as Session_model
 from sqlmodel import Session as Session_db, desc
 from api.RFID.RFID_Services import *
 # from api.transaction.Transaction_service import get_session_by_id
+
 
 # formatage
 def get_historique_session_data(historiqueSession : Historique_session, session_db : Session_db):
@@ -21,7 +23,9 @@ def get_lists_historique_datas(historique:List[Historique_session], session_db:S
     return [get_historique_session_data(ses,session_db) for ses in historique]
 # ----------------------------
 def get_last_historique_by_idtag(idtag:int, session_db:Session_db):
-    historique = session_db.exec(select (Historique_session).where(Historique_session.idtag==idtag).order_by(desc(Historique_session.start_time))).first()
+    historique = session_db.exec(select (Historique_session).where(Historique_session.idtag==idtag , Historique_session.state==HISTORIQUE_URGENCY).order_by(desc(Historique_session.start_time))).first()
+    if historique is None:
+        historique = session_db.exec(select (Historique_session).where(Historique_session.idtag==idtag).order_by(desc(Historique_session.start_time))).first()
     return historique
 
 def check_if_history_passed_expiration_date(historique:Historique_session):
@@ -55,6 +59,7 @@ def check_if_we_need_to_create_HS_or_not(last_history: Historique_session, sessi
 def get_history_for_a_session(id_tag:int, session_db:Session_db):
     last_history = get_last_historique_by_idtag(id_tag,session_db)
     if check_if_we_need_to_create_HS_or_not(last_history,session_db):
+        print("need to recreate")
         hs = Historique_session(
             idtag=id_tag,
             expiry_date=datetime.now()+timedelta(hours=EXPIRATION_HOUR),
@@ -65,6 +70,9 @@ def get_history_for_a_session(id_tag:int, session_db:Session_db):
         session_db.flush()
         return hs
     last_history.state=DEFAULT_STATE
+    print("no need to recreate")
+    session_db.add(last_history)
+    session_db.flush()
     return last_history
 
 def end_a_history_session(historique:Historique_session,end_time:datetime, session_db:Session_db):
@@ -107,6 +115,17 @@ def get_all_HS_by_user(id_user:int, session_db:Session_db, pagination:Pagination
     pagination.total_items=query_count
     return {"data":get_lists_historique_datas(query,session_db),"pagination":pagination}
 
+async def reprendre_une_transaction(id_historique_session : int,id_tag:int,connector_id,charge_point_id, session_db:Session_db):
+    historique = get_history_by_id(id_historique_session,session_db)
+    if historique==None:
+        raise ValueError("Historique session not found")
+    historique.state = HISTORIQUE_URGENCY
+    session_db.add(historique)
+    session_db.flush()
+    tag = get_rdif_by_id(session=session_db,id=id_tag)
+    await send_remoteStartTransaction(charge_point_id,tag.rfid,connector_id)
+    session_db.commit()
+    return {"message":"transaction reprise"}
 # *************** TESTS ***************
 
 ses= next(get_session())

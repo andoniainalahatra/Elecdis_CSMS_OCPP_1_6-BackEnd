@@ -11,12 +11,15 @@ from models.elecdis_model import UserCredit
 
 
 def check_if_has_credit(session: Session_db, idtag: int):
+    print("check credit ")
     if get_user_credit_solde_by_idTag(session,idtag).solde<=MIN_SOLDE:
         return False
     return True
 
 def get_user_credit_solde_by_idTag(session: Session_db, idtag: int):
     solde = session.exec(select(func.coalesce(func.sum(UserCredit.credit_in)-func.sum(UserCredit.credit_out),0).label("solde"),UserCredit.credit_unit).where(UserCredit.id_tag == idtag).group_by(UserCredit.credit_unit)).first()
+    if solde is None:
+        return Solde_data(solde=0, user_id=0, unit=UNIT_KWH)
     tags= get_rdif_by_id(session, idtag)
     return Solde_data(solde=solde[0], user_id=tags.user_id, unit=solde[1])
 

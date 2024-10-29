@@ -43,6 +43,8 @@ def create_session_service(session: Session_db, session_data: Session_create):
     # get historique session
     hs = get_history_for_a_session(tag.id,session)
     # create session
+    print(f"user id {user.id}")
+    print(f"tag id {hs.id}")
     session_model = SessionModel(
         start_time=session_data.start_time,
         end_time=session_data.end_time,

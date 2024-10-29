@@ -25,13 +25,17 @@ class Authorize:
     async def on_authorize(self,charge_point_instance,idTag,**kwargs):
         # check if tag exists in the database
         session : Session = next(get_session())
+
         tag= get_by_tag(session,idTag)
         timezone = pytz.timezone(TIME_ZONE)
+
         expiry_date =(datetime.now(timezone) + timedelta(days=2))
+
         rfid_usage_history = Rfid_usage_history(date=datetime.now(timezone), action="authorize")
         status = "Accepted"
         reason=""
         if tag is None:
+            print("Tag not found")
             status="Blocked"
             return {
                 "idTagInfo":{
@@ -39,9 +43,10 @@ class Authorize:
                     'expiryDate': expiry_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
                 }
             }
-        # if not check_if_has_credit(session,tag.id):
-        #     status="Blocked"
-        #     reason="Not enough credit"
+        if not check_if_has_credit(session,tag.id):
+            status="Blocked"
+            reason="Not enough credit"
+            print("Not enough credit")
         rfid_usage_history.action += f" {status} : {reason}"
         rfid_usage_history.tag_id = tag.id
         session.add(rfid_usage_history)
