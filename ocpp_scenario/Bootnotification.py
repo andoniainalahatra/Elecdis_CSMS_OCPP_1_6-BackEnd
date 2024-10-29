@@ -35,6 +35,7 @@ class BootNotification:
             else:
                 charge=Cp_update(charge_point_model=chargePointModel,charge_point_vendors=chargePointVendor,status=StatusEnum.available,time=datetime.now(),firmware_version=kwargs.get("firmwareVersion"))
                 update_cp_boot(charge_point_id,charge,session)
+            session.commit()
         except Exception as e:
            session.rollback() 
            logging.error(f"rollback: {e}") 

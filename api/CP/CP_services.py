@@ -1,5 +1,5 @@
-from api.CP.CP_models import Cp_create,Cp_update,Cp_form
-from models.elecdis_model import ChargePoint,StatusEnum,Connector,Historique_metter_value
+from api.CP.CP_models import Cp_create,Cp_update,Cp_form,Historique_status_chargepoint_create
+from models.elecdis_model import ChargePoint,StatusEnum,Connector,Historique_metter_value,Historique_status_chargepoint
 from sqlmodel import Session, select,func,extract,case
 from models.Pagination import Pagination
 from fastapi import UploadFile
@@ -54,12 +54,108 @@ def update_cp(id_cp:str,cp:Cp_update,session : Session):
     session.refresh(charge)
     return "Modification réussie"
 
-def update_cp_boot(id_cp:str,cp:Cp_update,session : Session):
+def create_historique_chargepoint_status(h:Historique_status_chargepoint_create,session : Session):
+    try:
+        histo:Historique_status_chargepoint=Historique_status_chargepoint(charge_point_id=h.charge_point_id,statut=h.status,time_last_statut=h.time_last_status)
+        session.add(histo)
+        session.commit()
+       
+    except Exception as e:
+        return {"messageError":f"{str(e)}"}
+    
+def read_historique_staus_cp(session : Session,page: int = 1, number_items: int = 50):
+    try:
+        pagination = Pagination(page=page, limit=number_items)
+        histo = session.exec(
+            select(
+                Historique_status_chargepoint.charge_point_id.label("id_charge_point"),
+                Historique_status_chargepoint.statut.label("statut"),
+                Historique_status_chargepoint.time_last_statut.label("time")
+                
+            )
+            .offset(pagination.offset)  
+            .limit(pagination.limit)
+        ).all()
+
+       
+        count = session.exec(
+            select(func.count(Historique_status_chargepoint.id))
+            
+        ).first()
+
+        
+        formatted_result = [
+            {
+                "id_charge_point": cp.id_charge_point,
+                "statut": cp.statut,
+                "time": cp.time
+                
+            }
+            for cp in histo
+        ]
+
+        pagination.total_items = count
+        return {"data": formatted_result, "pagination":pagination.dict()}
+    except Exception as e:
+        return {"messageError": f"Error: {str(e)}"}
+    
+def get_average_unavailable_duration_for_date(session: Session, date: date):
+    try:
+        # Créer les bornes de la journée pour la date spécifiée
+        start_of_day = datetime.combine(date, datetime.min.time())
+        end_of_day = datetime.combine(date, datetime.max.time())
+        
+        # Filtrer les enregistrements `Unavailable` pour cette journée
+        unavailable_entries = session.exec(
+            select(Historique_status_chargepoint)
+            .where(
+                Historique_status_chargepoint.statut == StatusEnum.unavailable,
+                Historique_status_chargepoint.time_last_statut >= start_of_day,
+                Historique_status_chargepoint.time_last_statut <= end_of_day
+            )
+            .order_by(Historique_status_chargepoint.time_last_statut)
+        ).all()
+
+        total_duration = timedelta(0)
+        count = 0
+        
+        for entry in unavailable_entries:
+            # Récupérer le prochain changement de statut `Available` pour chaque `Unavailable` dans la même journée
+            next_available = session.exec(
+                select(Historique_status_chargepoint)
+                .where(
+                    Historique_status_chargepoint.charge_point_id == entry.charge_point_id,
+                    Historique_status_chargepoint.statut == StatusEnum.available,
+                    Historique_status_chargepoint.time_last_statut > entry.time_last_statut,
+                    Historique_status_chargepoint.time_last_statut <= end_of_day
+                )
+                .order_by(Historique_status_chargepoint.time_last_statut)
+            ).first()
+            
+            # Calculer la durée si le prochain changement de statut existe
+            if next_available:
+                duration = next_available.time_last_statut - entry.time_last_statut
+                total_duration += duration
+                count += 1
+
+        # Calculer la durée moyenne en minutes pour la journée
+        average_duration_seconds = total_duration.total_seconds() / count if count > 0 else 0
+        average_duration_minutes = average_duration_seconds / 60  # Conversion en minutes
+        
+        return {"average_unavailable_duration": average_duration_minutes, "date": date.strftime('%Y-%m-%d')}
+    except Exception as e:
+        return {"messageError": f"Error: {str(e)}"}
+
+
+def update_cp_boot(id_cp:str,cp:Cp_update,session : Session,can_commit=True):
     
     charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
     if charge is None:
         raise Exception(f"CP  with id {id_cp} does not exist.")
-    
+    histo=Historique_status_chargepoint_create(charge_point_id=id_cp,status=charge.status,time_last_status=charge.updated_at)
+    create_historique_chargepoint_status(histo,session)
+    if can_commit:
+        session.commit()
     charge.status=cp.status
     charge.charge_point_model=cp.charge_point_model
     charge.charge_point_vendors=cp.charge_point_vendors
@@ -71,12 +167,16 @@ def update_cp_boot(id_cp:str,cp:Cp_update,session : Session):
     session.refresh(charge)
     return "Modification réussie"
 
-def update_cp_status(id_cp:str,cp:Cp_update,session : Session):
+
+def update_cp_status(id_cp:str,cp:Cp_update,session : Session,can_commit=True):
     
     charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
     if charge is None:
         raise Exception(f"CP  with id {id_cp} does not exist.")
-    
+    histo=Historique_status_chargepoint_create(charge_point_id=id_cp,status=charge.status,time_last_status=charge.updated_at)
+    create_historique_chargepoint_status(histo,session)
+    if can_commit:
+        session.commit()
     charge.status=cp.status
     charge.updated_at=cp.time+ timedelta(hours=3)
     session.add(charge)
@@ -153,7 +253,8 @@ def read_detail_cp(id_cp:str,session:Session):
             Connector.id.label("id_connecteur"),
             ChargePoint.status.label("status_charge_point"),
             Connector.status.label("status_connector"),
-            Connector.valeur.label("energie_delivre")
+            Connector.valeur.label("energie_delivre"),
+            ChargePoint.firmware_version.label("firmware")
         )
         .join(Connector, ChargePoint.id == Connector.charge_point_id)
         .where(Connector.charge_point_id==id_cp)
@@ -170,7 +271,8 @@ def read_detail_cp(id_cp:str,session:Session):
             "status_connector": row.status_connector,
             "charge_point_model":row.charge_point_model,
             "charge_point_vendors":row.charge_point_vendors,
-            "adresse":row.adresse
+            "adresse":row.adresse,
+            "firmware":row.firmware
         }
         for row in result
     ]
@@ -700,6 +802,31 @@ def map_cp(session:Session):
 
     return formatted_result
 
+def status_cp(session:Session):
+  
+    total_unavailable_cp = session.exec(
+        select(func.count(ChargePoint.id)).where(ChargePoint.status == "Unavailable").where(ChargePoint.state==ACTIVE_STATE)
+    ).first()
+    total_charging_cp = session.exec(
+        select(func.count(ChargePoint.id)).where(ChargePoint.status == "Available").where(ChargePoint.state==ACTIVE_STATE)
+    ).first()
+
+    
+    stats = [
+        {
+            "status": "available",
+            "value": total_charging_cp,
+            "fill": "var(--color-available)"
+        },
+        {
+            "status": "unavailable",
+            "value": total_unavailable_cp,
+            "fill": "var(--color-unavailable)"
+        }
+    ]
+    
+    return stats
+    
     
 
 

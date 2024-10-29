@@ -43,6 +43,7 @@ class ChargePoint(TimestampMixin, table=True):
     longitude: float
     state: int
     firmware_version: Optional[str]
+    historique_status_chargepoint: List["Historique_status_chargepoint"] = Relationship(back_populates="chargepoint")
 
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
 
@@ -54,7 +55,13 @@ class Historique_defailllance(TimestampMixin, table=True):
     Description:Optional[str]
     etat:Optional[str]
 
-
+class Historique_status_chargepoint(TimestampMixin, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    # le id an'le connecteur no eto fa tsy le connector_id
+    charge_point_id: Optional[str] = Field(foreign_key="chargepoint.id")
+    statut: str
+    time_last_statut: datetime = Field(nullable=False)
+    chargepoint: Optional["ChargePoint"] = Relationship(back_populates="historique_status_chargepoint")
 # Pour les autres classes, les modifications restent les mêmes.
 
 class Connector(TimestampMixin, table=True):
