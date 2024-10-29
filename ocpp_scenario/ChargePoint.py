@@ -66,7 +66,7 @@ class ChargePoint(cp):
 
     async def monitor_heartbeats(self):
         while True:
-            await asyncio.sleep(self.time)  
+            await asyncio.sleep(self.time+1)  
             async with self.lock:
                 elapsed_time = datetime.now() - self.last_heartbeat_time
                 if self.heartbeat_count >= self.min_heartbeats:
