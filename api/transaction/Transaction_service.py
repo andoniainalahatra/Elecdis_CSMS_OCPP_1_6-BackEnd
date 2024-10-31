@@ -520,7 +520,6 @@ async def stop_transactions_on_sold_out(session: Session_db, idtag: int, session
         if ts.meter_stop is None:
             ts.meter_stop = metervalue
         total_energy+=(ts.meter_stop-ts.meter_start)*ts.tariff.multiplier
-        print(f" check if {check_if_sold_out(session, idtag, total_energy)}")
     if check_if_sold_out(session, idtag, total_energy):
         session_model = get_session_by_id(session, session_id)
         session_model.reason = "Credit de recharge insuffisante"

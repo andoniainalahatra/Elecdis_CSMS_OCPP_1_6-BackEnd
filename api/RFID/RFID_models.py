@@ -26,6 +26,7 @@ class Rfid_data(BaseModel):
     last_used:Optional[datetime]=""
     registration:Optional[datetime]=""
     history: Optional[list]=[]
+    solde_credit:Optional[float]=0.0
 
 
 

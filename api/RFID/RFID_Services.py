@@ -106,6 +106,7 @@ def get_rfid_data(data : Tag, session: Session):
         last_used=get_last_used_date_rfid(session, data.id),
         registration=data.created_at,
         history=hist
+        # ,solde_credit=
     )
 
 def get_rfid_data_lists(datas: List[Tag], session: Session):

@@ -35,7 +35,6 @@ class Authorize:
         status = "Accepted"
         reason=""
         if tag is None:
-            print("Tag not found")
             status="Blocked"
             return {
                 "idTagInfo":{
@@ -46,7 +45,6 @@ class Authorize:
         if not check_if_has_credit(session,tag.id):
             status="Blocked"
             reason="Not enough credit"
-            print("Not enough credit")
         rfid_usage_history.action += f" {status} : {reason}"
         rfid_usage_history.tag_id = tag.id
         session.add(rfid_usage_history)
