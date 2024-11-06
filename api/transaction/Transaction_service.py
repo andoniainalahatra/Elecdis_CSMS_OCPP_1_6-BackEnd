@@ -41,10 +41,9 @@ def create_session_service(session: Session_db, session_data: Session_create):
         raise {"message": f"Connector with id {session_data.connector_id} not found."}
 
     # get historique session
-    hs = get_history_for_a_session(tag.id,session)
+    hs = get_history_for_a_session(tag.id,session,session_data.start_time)
     # create session
-    print(f"user id {user.id}")
-    print(f"tag id {hs.id}")
+
     session_model = SessionModel(
         start_time=session_data.start_time,
         end_time=session_data.end_time,
@@ -55,14 +54,11 @@ def create_session_service(session: Session_db, session_data: Session_create):
         tag=session_data.user_tag,
         id_historique_session=hs.id
     )
-    print("tsy mety eto ")
 
     session.add(session_model)
     session.flush()
-    print("session_model",session_model)
 
     ts=create_new_tarif_snapshot(session_model.id,session_model.start_time,session_model.metter_start/1000,session,None)
-    print(ts)
     session.commit()
     session.refresh(session_model)
     return session_model
@@ -90,7 +86,6 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
     print(session_model.id)
     # update the last tariff snapshot
     last_ts = get_last_tarifSnapshot_by_session(session_model.id, session)
-    print(f"last ts {last_ts}")
     met_stop= session_model.metter_stop/1000
     update_tarif_snapshot(last_ts, met_stop, session)
     # add transactions with its price
@@ -360,7 +355,7 @@ def get_heures_de_pointes(session: Session):
 
 def get_session_data_chart(session :Session_db, date_here:date):
     query = text(f"""
-    select hour , max(user_count) as event_count, max(user_count) as user_count from (
+    select hour , max(event_count) as event_count, max(user_count) as user_count from (
     (select
          TO_CHAR(DATE_TRUNC('hour', start_time),'HH24:MI:SS') AS hour,
          COUNT(*) AS event_count,
