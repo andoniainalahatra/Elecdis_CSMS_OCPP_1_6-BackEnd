@@ -85,14 +85,14 @@ def check_if_we_need_to_create_HS_or_not(last_history: Historique_session, sessi
     #     return True
     return False
 
-def get_history_for_a_session(id_tag:int, session_db:Session_db):
+def get_history_for_a_session(id_tag:int, session_db:Session_db, start_time):
     last_history = get_last_historique_by_idtag(id_tag,session_db)
     if check_if_we_need_to_create_HS_or_not(last_history,session_db):
         print("need to recreate")
         hs = Historique_session(
             idtag=id_tag,
             expiry_date=datetime.now()+timedelta(hours=EXPIRATION_HOUR),
-            start_time=datetime.now(),
+            start_time=start_time,
             state=DEFAULT_STATE
         )
         session_db.add(hs)
@@ -158,6 +158,10 @@ async def reprendre_une_transaction(id_historique_session : int,id_tag:int,conne
     await send_remoteStartTransaction(charge_point_id,tag.rfid,connector_id)
     session_db.commit()
     return {"message":"transaction reprise"}
+
+def get_last_current_session(id_historique:int, session_db:Session_db):
+    session = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_historique, Session_model.end_time=="")).first()
+    return session
 # *************** TESTS ***************
 
 ses= next(get_session())
@@ -171,5 +175,5 @@ hs = Historique_session(
 )
 # sm = ses.exec(select(Session_model).where(Session_model.id == 174)).first()
 # print(f" session : {sm}")
-# print(get_all_session_from_history_no_pg(16,ses))
-# ses.commit()
+# print(get_all_session_from_history_no_pg(22,ses))
+# ses.close()
