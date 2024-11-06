@@ -22,11 +22,12 @@ class MeterValue:
     @on(Action.MeterValues)
     async def on_metervalues(self,charge_point_instance,connectorId,meterValue,**kwargs):
         # logging.info(f"======{kwargs.get('transactionId')}======>>>>>>>>>:{meterValue} ")
+
+
         session_db=next(get_session())
         meter= create_metervalue_from_mvdata(mvdata=meterValue[0].get('sampledValue'),connectorId=connectorId,transactionId=int(kwargs.get('transactionId')),dateMeter= datetime.strptime(meterValue[0].get('timestamp'), "%Y-%m-%dT%H:%M:%S.%fZ"))
         manage_tarif_snapshots_on_meter_values(meter, session_db,logging)
         session = get_session_by_id(session_db,meter.transactionId)
-        print(session)
         tag=get_by_tag(session_db,session.tag)
         await stop_transactions_on_sold_out(session_db, tag.id, meter.transactionId, meter.metervalue,charge_point_instance)
         session_db.commit()

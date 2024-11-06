@@ -51,19 +51,14 @@ def get_last_tarifSnapshot_by_session(session_id:int, session_db:Session):
 
 def manage_tarif_snapshots_on_meter_values(meterValuesDatas:MeterValueData,session_db:Session,loggin):
     last_ts= get_last_tarifSnapshot_by_session(meterValuesDatas.transactionId,session_db)
-    loggin.info(f"last_ts => {last_ts}")
     ts=None
     if last_ts is None:
-        loggin.info("last_ts is None")
         ts=create_new_tarif_snapshot(meterValuesDatas.transactionId,meterValuesDatas.dateMeter,meterValuesDatas.metervalue,session_db,None)
     else :
         current_tarif= get_one_tarif_from_trans_end(meterValuesDatas.dateMeter,session_db)
-        loggin.info(f"current_tarif => {current_tarif}")
         tarif= get_tarif_by_id(last_ts.tariff_id,session_db)
-        loggin.info(f"tarif => {tarif}")
         if tarif.id!=current_tarif.id:
-            loggin.info("tarif.id!=current_tarif.id")
-            ts=update_tarif_snapshot(last_ts,meterValuesDatas.metervalue,session_db)
+            update_tarif_snapshot(last_ts,meterValuesDatas.metervalue,session_db)
             ts=create_new_tarif_snapshot(meterValuesDatas.transactionId,meterValuesDatas.dateMeter,meterValuesDatas.metervalue,session_db,None)
 
     return ts

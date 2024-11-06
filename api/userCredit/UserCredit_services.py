@@ -11,7 +11,6 @@ from models.elecdis_model import UserCredit
 
 
 def check_if_has_credit(session: Session_db, idtag: int):
-    print("check credit ")
     if get_user_credit_solde_by_idTag(session,idtag).solde<=MIN_SOLDE:
         return False
     return True
@@ -69,7 +68,6 @@ def debit_credit_to_user_account_after_session(session: Session_db, idtag: int, 
     return get_user_credit_solde_by_idTag(session=session, idtag=idtag)
 
 def check_if_sold_out(session: Session_db, idtag: int, value_to_add: float):
-    print((get_user_credit_solde_by_idTag(session,idtag).solde-value_to_add))
     if (get_user_credit_solde_by_idTag(session,idtag).solde-value_to_add)<=1:
         return True
     return False

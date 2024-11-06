@@ -9,3 +9,10 @@ class historique_session_data(BaseModel):
     start_time:datetime
     end_time:Optional[datetime]=""
     state:Optional[str]=""
+    connector_id:Optional[str]=""
+    chargepoint_id:Optional[str]=""
+    address:Optional[str]=""
+    total_energy:Optional[float]=0.0
+    total_price:Optional[float]=0.0
+    currency:Optional[str]=""
+    energy_unit:Optional[str]=""
