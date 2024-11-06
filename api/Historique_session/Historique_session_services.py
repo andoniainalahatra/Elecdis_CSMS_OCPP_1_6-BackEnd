@@ -2,23 +2,52 @@ from datetime import timedelta
 
 from api.CP.CP_services import send_remoteStartTransaction
 from api.Historique_session.Historique_session_models import historique_session_data
-from models.elecdis_model import Historique_session, Session as Session_model
+from models.elecdis_model import Historique_session, Session as Session_model, ChargePoint, Connector
 from sqlmodel import Session as Session_db, desc
 from api.RFID.RFID_Services import *
+from core.utils import *
 # from api.transaction.Transaction_service import get_session_by_id
 
 
+def get_charge_point_by_connector_id(connector_id:str, session_db:Session_db):
+    cp = session_db.exec(select(ChargePoint).join(Connector).where(Connector.id==connector_id)).first()
+    return cp
+
 # formatage
 def get_historique_session_data(historiqueSession : Historique_session, session_db : Session_db):
+    from api.transaction.Transaction_service import get_sums_transactions
     tag = get_rdif_by_id(session=session_db,id=historiqueSession.idtag)
+    session_model = get_last_session_in_history(historiqueSession.id,session_db)
+    chargePoint = get_charge_point_by_connector_id(session_db=session_db,connector_id=session_model.connector_id)
+    liste_sessions = get_all_session_from_history_no_pg(historiqueSession.id,session_db)
+    total_energy:float =0
+    total_price:float = 0
+    currency = CURRENCY_AR
+    energy_unit = UNIT_KWH
+    for i in liste_sessions:
+        data = get_sums_transactions(session_id=i.id,session=session_db)
+        print(data)
+        total_energy+= float(data.consumed_energy)
+        total_price+= float(data.total_price)
+        currency = data.currency
+        energy_unit = data.energy_unit
+
     return historique_session_data(
         id=historiqueSession.id,
         rfid=tag.rfid,
         user_name=tag.user_name,
         start_time=historiqueSession.start_time,
         end_time=historiqueSession.end_time,
-        state="en cours" if historiqueSession.state==DEFAULT_STATE else "terminé"
+        state="en cours" if historiqueSession.state==DEFAULT_STATE else "terminé",
+        connector_id=session_model.connector_id,
+        chargepoint_id=chargePoint.id,
+        address=chargePoint.adresse,
+        total_energy=total_energy,
+        total_price=total_price,
+        currency=currency,
+        energy_unit=energy_unit
     )
+
 def get_lists_historique_datas(historique:List[Historique_session], session_db:Session_db):
     return [get_historique_session_data(ses,session_db) for ses in historique]
 # ----------------------------
@@ -51,9 +80,9 @@ def check_if_we_need_to_create_HS_or_not(last_history: Historique_session, sessi
     if check_if_history_passed_expiration_date(last_hs):
         print("past expiration date")
         return True
-    if check_if_last_session_in_history_ended_normaly(last_hs.id,session_db):
-        print("ended normaly")
-        return True
+    # if check_if_last_session_in_history_ended_normaly(last_hs.id,session_db):
+    #     print("ended normaly")
+    #     return True
     return False
 
 def get_history_for_a_session(id_tag:int, session_db:Session_db):
@@ -98,6 +127,9 @@ def get_all_session_from_history(id_history:int, session_db:Session_db, paginati
     query = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_history).order_by(Session_model.id).offset(pagination.offset).limit(pagination.limit)).all()
     pagination.total_items=query_count
     return {"data":get_list_session_data_2(query,session_db),"pagination":pagination.dict()}
+def get_all_session_from_history_no_pg(id_history:int, session_db:Session_db):
+    query = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_history).order_by(Session_model.id)).all()
+    return query
 
 def get_all_HS_by_user(id_user:int, session_db:Session_db, pagination:Pagination):
     query_count=len(session_db.exec(select(Historique_session)
@@ -139,5 +171,5 @@ hs = Historique_session(
 )
 # sm = ses.exec(select(Session_model).where(Session_model.id == 174)).first()
 # print(f" session : {sm}")
-# print(end_a_history_session_in_a_transaction(sm,ses))
+# print(get_all_session_from_history_no_pg(16,ses))
 # ses.commit()

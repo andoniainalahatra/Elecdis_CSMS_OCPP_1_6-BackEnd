@@ -118,8 +118,11 @@ def delete_user_by_id(id: int,
 @router.get("/new_clients/")
 def get_new_clients(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
+
+        page: Optional[int] = 1,
+        number_items: Optional[int] = 50,
         month: Optional[int]=None, year: Optional[int]=None, session: Session = Depends(get_session)):
-    clients = get_new_clients_lists(session=session,mois=month, annee=year)
+    clients = get_new_clients_lists(session=session,mois=month, annee=year, page=page, number_items=number_items)
     if year is None:
         year = datetime.utcnow().year
     return {"clients ":clients,
