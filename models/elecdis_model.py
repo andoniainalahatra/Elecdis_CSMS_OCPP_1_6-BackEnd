@@ -139,7 +139,7 @@ class Tariff(TimestampMixin, table=True):
     start_hour: time
     end_hour: time
     price: float
-    multiplier: Optional[float]=1
+    multiplier: Optional[float]=Field(default=1)
     currency: Optional[str]
     energy_unit: Optional[str]
 

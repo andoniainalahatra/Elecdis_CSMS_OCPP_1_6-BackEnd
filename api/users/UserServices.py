@@ -161,7 +161,7 @@ def get_new_clients_lists(session: Session = Depends(get_session), mois: Optiona
     pagination.total_items = total_items
 
     clients = session.exec(query).all()
-    return {"data": get_list_user_data(clients), "pagination": pagination.dict()}
+    return {"data": get_list_user_data(clients), "pagination": pagination.dict(), "month": mois, "year": annee}
 
 
 def count_new_clients(session: Session = Depends(get_session), mois: Optional[int] = None,

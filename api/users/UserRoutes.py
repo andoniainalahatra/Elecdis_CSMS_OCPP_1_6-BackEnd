@@ -125,9 +125,7 @@ def get_new_clients(
     clients = get_new_clients_lists(session=session,mois=month, annee=year, page=page, number_items=number_items)
     if year is None:
         year = datetime.utcnow().year
-    return {"clients ":clients,
-            "month": month,
-            "year": year}
+    return clients
 
 @router.get("/new_clients/count")
 def count_all_new_clients_based_on_month_and_years(

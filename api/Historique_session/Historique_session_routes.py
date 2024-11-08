@@ -24,3 +24,4 @@ def get_all_history_by_id_user(id_user:int, session:Session=Depends(get_session)
 @router.post("/reprendre_transaction")
 async def reprendre_transaction(id_historique_session : int,id_tag:int,connector_id,charge_point_id, session:Session=Depends(get_session)):
     return await reprendre_une_transaction(id_historique_session,id_tag,connector_id,charge_point_id,session)
+
