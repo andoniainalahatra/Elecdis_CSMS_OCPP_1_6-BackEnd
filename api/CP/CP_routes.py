@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from api.CP.CP_services import create_cp,update_cp,read_charge_point_connector,read_detail_cp,delete_cp,read_cp,upload_charge_points_from_csv,count_status_cp,detail_status_cp,recherche_cp,send_remoteStopTransaction,send_remoteStartTransaction,graph_conso_energie_cp,graph_trimestriel_conso_energie_cp,graph_semestriel_conso_energie_cp,graph_conso_energie,graph_semestriel_conso_energie,graph_trimestriel_conso_energie,send_getdiagnostic,map_cp,status_cp,create_historique_chargepoint_status,read_historique_staus_cp,get_average_unavailable_duration_for_date
 from api.CP.CP_models import Cp_create,Cp_update,Historique_status_chargepoint_create
 from datetime import date, datetime
+
+from api.Historique_session.Historique_session_services import get_last_current_session
 from core.database import get_session
 import aio_pika
 from aio_pika import ExchangeType, Message as AioPikaMessage,IncomingMessage
@@ -82,9 +84,12 @@ async def import_from_csv_cp(file: UploadFile = File(...), session : Session = D
     return {"message": "Charge points imported successfully"}
 
 @router.post("/send_remoteStopTransaction/{charge_point_id}/{transaction_id}")
-async def send_messageRemoteStopTransaction(charge_point_id: str, transaction_id: int):
+async def send_messageRemoteStopTransaction(charge_point_id: str, transaction_id: int, session:Session=Depends(get_session)):
     try:
-      return await send_remoteStopTransaction(charge_point_id,transaction_id)
+        transaction = get_last_current_session(transaction_id,session)
+        if transaction==None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str("Aucune transaction en cours"))
+        return await send_remoteStopTransaction(charge_point_id,transaction_id)
     except Exception as e:
         raise e
 @router.post("/send_remoteStartTransaction/{charge_point_id}/{idTag}/{connectorId}")
@@ -95,7 +100,6 @@ async def send_messageRemoteStartTransaction(charge_point_id: str, idTag:str,con
         raise e
 @router.post("/getdiagno/")
 async def send_diagno(charge_point_id: str, startTime:datetime,stopTime:datetime,path:str):
-   
     try:
         
         return await send_getdiagnostic(charge_point_id, startTime, stopTime, path)

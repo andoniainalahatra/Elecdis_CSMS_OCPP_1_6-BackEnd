@@ -160,7 +160,7 @@ async def reprendre_une_transaction(id_historique_session : int,id_tag:int,conne
     return {"message":"transaction reprise"}
 
 def get_last_current_session(id_historique:int, session_db:Session_db):
-    session = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_historique, Session_model.end_time=="")).first()
+    session = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_historique, Session_model.end_time==None)).first()
     return session
 # *************** TESTS ***************
 
