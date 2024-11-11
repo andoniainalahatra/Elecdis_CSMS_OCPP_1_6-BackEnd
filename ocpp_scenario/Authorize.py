@@ -42,6 +42,7 @@ class Authorize:
                     'expiryDate': expiry_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
                 }
             }
+
         if not check_if_has_credit(session,tag.id):
             status="Blocked"
             reason="Not enough credit"

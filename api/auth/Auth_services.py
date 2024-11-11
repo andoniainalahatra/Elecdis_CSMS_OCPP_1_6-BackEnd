@@ -288,7 +288,7 @@ async def forgot_password_method(email: str, session: Session):
 
 
 def check_code_reset(email: str, code: str, session: Session = Depends(get_session)):
-    user = get_user_from_email(email=email, session=session)
+    user = get_user_from_email(email=email.strip(), session=session)
     if user is None:
         raise EmailException(f"User with email {email} does not exist")
     user_code = session.exec(
