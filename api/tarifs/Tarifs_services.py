@@ -2,11 +2,13 @@
 from datetime import time, datetime
 from typing import Optional
 
-from sqlmodel import Session, select, text,desc
+from sqlmodel import Session, select, text,desc,func
 
 from api.transaction.Transaction_models import MeterValueData
 from core.database import get_session
-from models.elecdis_model import Tariff, TariffSnapshot
+from models.Pagination import Pagination
+from models.elecdis_model import Tariff, TariffSnapshot, TariffGroup
+from api.tarifs.Tarifs_models import Tariff_create, Tariff_update
 
 
 def get_one_tarif_from_trans_end(end_trans : datetime, session : Session ):
@@ -69,3 +71,102 @@ def get_tariff_snapshot_by_session_id(session_id:int, session_db:Session):
     except Exception as  e:
         raise e
 
+def get_tarif_data(tarif:Tariff):
+    return {
+        "id": tarif.id,
+        "start_hour": tarif.start_hour,
+        "end_hour": tarif.end_hour,
+        "price": tarif.price,
+        "currency": tarif.currency,
+        "description": tarif.description,
+        "name": tarif.name,
+        "facteur_majoration": tarif.multiplier,
+        "energy_unit": tarif.energy_unit,
+        "backgroundColor":"",
+        "textColor":"",
+        "category": tarif.tariff_group.name
+    }
+def get_tarif_datas(tarifs):
+    return [get_tarif_data(tarif) for tarif in tarifs]
+def get_all_tariff(session :Session, page:int=1, number_items:int=50):
+    try:
+        pagination = Pagination(page=page, limit=number_items)
+        pagination.total_items= session.exec(select(func.count(Tariff.id))).first()
+        return {"data":get_tarif_datas(session.exec(select(Tariff).offset(pagination.offset).limit(pagination.limit)).all()),"pagination":pagination.dict()}
+    except Exception as e:
+        raise e
+
+def get_tarif_group_by_id(id:int, session:Session):
+    try:
+        return session.exec(select(TariffGroup).where(TariffGroup.id==id)).first()
+    except Exception as e:
+        raise e
+
+def create_tariff(create_data:Tariff_create, session):
+
+    tariff_group=get_tarif_group_by_id(create_data.category, session)
+    if tariff_group is None:
+        raise Exception("Tariff group not found")
+    try:
+        tariff = Tariff(
+            start_hour=create_data.start_hour,
+            end_hour=create_data.end_hour,
+            price=create_data.price,
+            currency=create_data.currency,
+            name = create_data.description,
+            multiplier = create_data.facteur_majoration,
+            energy_unit = create_data.energy_unit
+            ,
+            tariff_group_id = tariff_group.id
+
+        )
+        session.add(tariff)
+        session.flush()
+        session.commit()
+        session.close()
+        return tariff
+    except Exception as e:
+        raise e
+
+def update_tariff(id: int, create_data: Tariff_update, session: Session):
+    try:
+        # Retrieve the existing tariff by its ID
+        existing_tariff = get_tarif_by_id(id, session)
+        if not existing_tariff:
+            raise Exception("Tariff not found")
+
+        # Update the tariff's attributes with the new data if they are not None
+        if create_data.start_hour is not None:
+            existing_tariff.start_hour = create_data.start_hour
+        if create_data.end_hour is not None:
+            existing_tariff.end_hour = create_data.end_hour
+        if create_data.price is not None:
+            existing_tariff.price = create_data.price
+        if create_data.currency is not None:
+            existing_tariff.currency = create_data.currency
+        if create_data.description is not None:
+            existing_tariff.name = create_data.description
+        if create_data.facteur_majoration is not None:
+            existing_tariff.multiplier = create_data.facteur_majoration
+        if create_data.energy_unit is not None:
+            existing_tariff.energy_unit = create_data.energy_unit
+        if create_data.category is not None:
+            tarif = get_tarif_group_by_id(create_data.category, session)
+            if tarif is None:
+                raise Exception("Tariff group not found")
+            existing_tariff.tariff_group_id = create_data.category
+
+        # Save the changes to the database
+        session.add(existing_tariff)
+        session.flush()
+        session.commit()
+        session.close()
+        return existing_tariff
+    except Exception as e:
+        raise e
+
+def delete_tariff(id, session):
+    session.delete(get_tarif_by_id(id, session))
+    session.commit()
+    session.close()
+    return "ok"

@@ -104,7 +104,6 @@ class Historique_metter_value(TimestampMixin, table=True):
 class TariffGroup(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
-    new_column: int
 
     tariffs: List["Tariff"] = Relationship(back_populates="tariff_group")
 
@@ -135,6 +134,7 @@ class Contract(TimestampMixin, table=True):
 class Tariff(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
+    description : Optional[str]=""
     tariff_group_id: int = Field(foreign_key="tariffgroup.id")
     start_hour: time
     end_hour: time
@@ -213,6 +213,7 @@ class PaymentMethodUser(TimestampMixin, table=True):
 class Subscription(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     type_subscription: str
+    is_type_credit: Optional[bool]=Field(default=False)
 
     users: List["User"] = Relationship(back_populates="subscription")
 
