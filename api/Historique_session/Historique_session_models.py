@@ -17,6 +17,7 @@ class historique_session_data(BaseModel):
     currency:Optional[str]=""
     energy_unit:Optional[str]=""
     is_credit:Optional[bool]=False
+    is_expired:Optional[bool]=False
 
 class Tarif_applique(BaseModel):
     tarif_name:Optional[str]=""
