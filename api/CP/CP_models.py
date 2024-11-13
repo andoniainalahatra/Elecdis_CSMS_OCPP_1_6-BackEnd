@@ -41,4 +41,5 @@ class Historique_status_chargepoint_create(BaseModel):
     status:str
     time_last_status:datetime
 
+
    
