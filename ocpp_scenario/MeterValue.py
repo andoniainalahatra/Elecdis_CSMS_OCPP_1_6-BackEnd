@@ -8,7 +8,7 @@ from ocpp.v16 import call_result
 from propan import apply_types
 import logging
 
-from api.RFID.RFID_Services import get_by_tag
+from api.RFID.RFID_Services import get_by_tag, check_if_user_should_use_credit
 from api.tarifs.Tarifs_services import manage_tarif_snapshots_on_meter_values
 from api.transaction.Transaction_service import create_metervalue_from_mvdata, stop_transactions_on_sold_out, \
     get_session_by_id
@@ -29,7 +29,8 @@ class MeterValue:
         manage_tarif_snapshots_on_meter_values(meter, session_db,logging)
         session = get_session_by_id(session_db,meter.transactionId)
         tag=get_by_tag(session_db,session.tag)
-        await stop_transactions_on_sold_out(session_db, tag.id, meter.transactionId, meter.metervalue,charge_point_instance)
+        if check_if_user_should_use_credit(session_db,session.tag):
+            await stop_transactions_on_sold_out(session_db, tag.id, meter.transactionId, meter.metervalue,charge_point_instance)
         session_db.commit()
         return {}
 

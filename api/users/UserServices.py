@@ -91,12 +91,20 @@ def get_all_Admins(session: Session = Depends(get_session), page: Optional[int] 
 def create_default_admin_usergroup(session: Session):
     # Check if the "Admin" user group exists
     admin_group = session.exec(select(UserGroup).where(UserGroup.name == ADMIN_NAME)).first()
+    superadmin_group = session.exec(select(UserGroup).where(UserGroup.name == SUPERADMIN_NAME)).first()
+    client = session.exec(select(UserGroup).where(UserGroup.name == CLIENT_NAME)).first()
 
     # If it does not exist, create it
     if not admin_group:
         admin_group = UserGroup(name=ADMIN_NAME)
         session.add(admin_group)
-        session.commit()
+    if not superadmin_group:
+        superadmin_group = UserGroup(name=SUPERADMIN_NAME)
+        session.add(superadmin_group)
+    if not client:
+        client = UserGroup(name=CLIENT_NAME)
+        session.add(client)
+    session.commit()
 
 
 def get_all_clients(session: Session = Depends(get_session), page: int = 1, number_items: int = 50):

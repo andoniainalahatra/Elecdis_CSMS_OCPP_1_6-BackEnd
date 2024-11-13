@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
 from api.Historique_session.Historique_session_services import get_all_history, get_all_session_from_history, \
-    get_all_HS_by_user, reprendre_une_transaction
+    get_all_HS_by_user, reprendre_une_transaction, get_facture_session
 from core.database import get_session
 from models.Pagination import Pagination
 
@@ -25,3 +25,6 @@ def get_all_history_by_id_user(id_user:int, session:Session=Depends(get_session)
 async def reprendre_transaction(id_historique_session : int,id_tag:int,connector_id,charge_point_id, session:Session=Depends(get_session)):
     return await reprendre_une_transaction(id_historique_session,id_tag,connector_id,charge_point_id,session)
 
+@router.get("/facture")
+def get_facture(id_historique_session:int, session:Session=Depends(get_session)):
+    return get_facture_session(id_historique_session,session)

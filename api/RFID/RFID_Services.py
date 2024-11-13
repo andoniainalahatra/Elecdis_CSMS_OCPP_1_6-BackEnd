@@ -4,7 +4,6 @@ from sqlmodel import cast, Integer
 
 from fastapi import UploadFile, HTTPException
 from api.RFID.RFID_models import *
-from api.userCredit.UserCredit_services import get_user_credit_solde_by_idTag
 from core.database import get_session
 from models.Pagination import Pagination
 from models.elecdis_model import Tag, User, StatusEnum, Rfid_usage_history
@@ -93,6 +92,7 @@ def get_deleted_rfid(session: Session, page: int = 1, number_items: int = 50):
     return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) == DELETED_STATE)).all(), session), "pagination": pagination.dict()}
 
 def get_rfid_data(data : Tag, session: Session):
+    from api.userCredit.UserCredit_services import get_user_credit_solde_by_idTag
     if data is None:
         return None
     # get last used
@@ -187,3 +187,10 @@ def get_last_used_date_rfid(session: Session, id_tag: int):
 def get_rfid_use_history(session: Session, id_tag: int):
     return session.exec(select(Rfid_usage_history).where(Rfid_usage_history.tag_id == id_tag)).all()
 
+def check_if_user_should_use_credit(session: Session, tag: str):
+    user = get_user_by_tag(session, tag)
+    if user.subscription is None:
+        return False
+    if user.subscription.is_type_credit:
+        return True
+    return False

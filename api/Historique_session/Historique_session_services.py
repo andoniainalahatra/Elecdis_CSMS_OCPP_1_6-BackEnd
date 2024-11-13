@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from api.CP.CP_services import send_remoteStartTransaction
-from api.Historique_session.Historique_session_models import historique_session_data
+from api.Historique_session.Historique_session_models import historique_session_data, Facture_data, Tarif_applique
 from models.elecdis_model import Historique_session, Session as Session_model, ChargePoint, Connector
 from sqlmodel import Session as Session_db, desc
 from api.RFID.RFID_Services import *
@@ -45,7 +45,8 @@ def get_historique_session_data(historiqueSession : Historique_session, session_
         total_energy=total_energy,
         total_price=total_price,
         currency=currency,
-        energy_unit=energy_unit
+        energy_unit=energy_unit,
+        is_credit= historiqueSession.is_credit
     )
 
 def get_lists_historique_datas(historique:List[Historique_session], session_db:Session_db):
@@ -162,6 +163,55 @@ async def reprendre_une_transaction(id_historique_session : int,id_tag:int,conne
 def get_last_current_session(id_historique:int, session_db:Session_db):
     session = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_historique, Session_model.end_time==None)).first()
     return session
+
+def get_facture_session(id_historique_session :int, session_db : Session_db):
+    from api.transaction.Transaction_service import get_transactions_details_by_session_nopg
+#    get all transactions related to the historique sessions
+    total_price = 0
+    consumed_energy_no_maj= 0
+    consumed_energy_with_maj = 0
+    tarif_applique= []
+    sessions = get_all_session_from_history_no_pg(id_historique_session,session_db)
+    historique_session = get_historique_session_data(get_history_by_id(id_historique_session,session_db),session_db)
+    for session in sessions:
+        print(f"session : {len(sessions)}")
+        transactions = get_transactions_details_by_session_nopg(session_id=session.id,session_db=session_db)
+        print(f"trans : {len(transactions)}")
+
+        for i in transactions:
+            total_price+= i.total_price
+            consumed_energy_no_maj+= i.consumed_energy
+            consumed_energy_with_maj+= i.consumed_energy_added
+            tarif_apk = Tarif_applique(
+                tarif_name=i.tariff.name,
+                description=i.tariff.description,
+                price=i.unit_price if i.unit_price is not None else 0,
+                kwh_applicable=i.consumed_energy if i.consumed_energy is not None else 0,
+                majoration=i.tariff.multiplier if i.tariff.multiplier is not None else 0
+            )
+            tarif_applique.append(tarif_apk)
+#     get all the sessions related to the historique session
+#   get datas for the bills
+    return Facture_data(
+        id=id_historique_session,
+        user_name=historique_session.user_name,
+        total_price=historique_session.total_price,
+        total_energy_no_majoration=consumed_energy_no_maj,
+        total_energy_with_majoration=consumed_energy_with_maj,
+        debut_session=historique_session.start_time,
+        fin_session=historique_session.end_time,
+        currency=historique_session.currency,
+        energy_unit=historique_session.energy_unit,
+        date=historique_session.end_time,
+        address=historique_session.address,
+        is_credit=historique_session.is_credit,
+        status="payé",
+        tarif_applique=tarif_applique
+    )
+
+
+
+
 # *************** TESTS ***************
 
 ses= next(get_session())

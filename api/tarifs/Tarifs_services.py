@@ -82,8 +82,8 @@ def get_tarif_data(tarif:Tariff):
         "name": tarif.name,
         "facteur_majoration": tarif.multiplier,
         "energy_unit": tarif.energy_unit,
-        "backgroundColor":"",
-        "textColor":"",
+        "backgroundColor":tarif.backgroundColor,
+        "textColor":tarif.textColor,
         "category": tarif.tariff_group.name
     }
 def get_tarif_datas(tarifs):
@@ -113,13 +113,16 @@ def create_tariff(create_data:Tariff_create, session):
             end_hour=create_data.end_hour,
             price=create_data.price,
             currency=create_data.currency,
-            name = create_data.description,
+            name = create_data.name_tarif,
+            description = create_data.description,
             multiplier = create_data.facteur_majoration,
-            energy_unit = create_data.energy_unit
-            ,
-            tariff_group_id = tariff_group.id
+            energy_unit = create_data.energy_unit,
+            tariff_group_id = tariff_group.id,
+            backgroundColor = create_data.backgroundColor,
+            textColor = create_data.textColor
 
         )
+        print(f"====> {tariff}")
         session.add(tariff)
         session.flush()
         session.commit()
@@ -132,7 +135,7 @@ def update_tariff(id: int, create_data: Tariff_update, session: Session):
     try:
         # Retrieve the existing tariff by its ID
         existing_tariff = get_tarif_by_id(id, session)
-        if not existing_tariff:
+        if existing_tariff==None:
             raise Exception("Tariff not found")
 
         # Update the tariff's attributes with the new data if they are not None
@@ -144,8 +147,14 @@ def update_tariff(id: int, create_data: Tariff_update, session: Session):
             existing_tariff.price = create_data.price
         if create_data.currency is not None:
             existing_tariff.currency = create_data.currency
+        if create_data.name_tarif is not None:
+            existing_tariff.name = create_data.name_tarif
         if create_data.description is not None:
-            existing_tariff.name = create_data.description
+            existing_tariff.description = create_data.description
+        if create_data.backgroundColor is not None:
+            existing_tariff.backgroundColor = create_data.backgroundColor
+        if create_data.textColor is not None:
+            existing_tariff.textColor = create_data.textColor
         if create_data.facteur_majoration is not None:
             existing_tariff.multiplier = create_data.facteur_majoration
         if create_data.energy_unit is not None:

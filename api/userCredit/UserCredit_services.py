@@ -15,6 +15,7 @@ def check_if_has_credit(session: Session_db, idtag: int):
         return False
     return True
 
+
 def get_user_credit_solde_by_idTag(session: Session_db, idtag: int,user_id:Optional[int]=None):
     solde = session.exec(select(func.coalesce(func.sum(UserCredit.credit_in)-func.sum(UserCredit.credit_out),0).label("solde"),UserCredit.credit_unit).where(UserCredit.id_tag == idtag).group_by(UserCredit.credit_unit)).first()
     if solde is None:
