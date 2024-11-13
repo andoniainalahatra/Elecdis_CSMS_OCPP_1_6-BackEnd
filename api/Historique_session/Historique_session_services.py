@@ -125,14 +125,14 @@ def end_a_history_session_in_a_transaction(session_trans:Session_model, session_
 
 def get_all_history(session_db:Session_db, pagination:Pagination ):
     count_query= session_db.exec(select(func.count(Historique_session.id))).first()
-    query = session_db.exec(select(Historique_session).order_by(Historique_session.id).offset(pagination.offset).limit(pagination.limit)).all()
+    query = session_db.exec(select(Historique_session).order_by(desc(Historique_session.id)).offset(pagination.offset).limit(pagination.limit)).all()
     pagination.total_items=count_query
     return {"data":get_lists_historique_datas(query,session_db),"pagination":pagination.dict()}
 
 def get_all_session_from_history(id_history:int, session_db:Session_db, pagination:Pagination):
     from api.transaction.Transaction_service import get_list_session_data_2
     query_count = session_db.exec(select(func.count(Session_model.id)).where(Session_model.id_historique_session==id_history)).first()
-    query = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_history).order_by(Session_model.id).offset(pagination.offset).limit(pagination.limit)).all()
+    query = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_history).order_by(desc(Session_model.id)).offset(pagination.offset).limit(pagination.limit)).all()
     pagination.total_items=query_count
     return {"data":get_list_session_data_2(query,session_db),"pagination":pagination.dict()}
 def get_all_session_from_history_no_pg(id_history:int, session_db:Session_db):
