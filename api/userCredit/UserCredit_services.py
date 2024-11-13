@@ -15,12 +15,17 @@ def check_if_has_credit(session: Session_db, idtag: int):
         return False
     return True
 
-def get_user_credit_solde_by_idTag(session: Session_db, idtag: int):
+
+def get_user_credit_solde_by_idTag(session: Session_db, idtag: int,user_id:Optional[int]=None):
     solde = session.exec(select(func.coalesce(func.sum(UserCredit.credit_in)-func.sum(UserCredit.credit_out),0).label("solde"),UserCredit.credit_unit).where(UserCredit.id_tag == idtag).group_by(UserCredit.credit_unit)).first()
     if solde is None:
         return Solde_data(solde=0, user_id=0, unit=UNIT_KWH)
-    tags= get_rdif_by_id(session, idtag)
-    return Solde_data(solde=solde[0], user_id=tags.user_id, unit=solde[1])
+    userid= None
+    if user_id is None:
+        userid= get_rdif_by_id(session, idtag).user_id
+    else:
+        userid=user_id
+    return Solde_data(solde=solde[0], user_id=userid, unit=solde[1])
 
 def add_user_credit(session: Session_db, idtag: int, amount: float, reason="Recharge", can_commit: bool = True):
     uc= UserCredit(id_tag=idtag, credit_in=amount, reason = reason)
@@ -41,10 +46,11 @@ def debiter_user_credit(session: Session_db, idtag: int, amount: float, can_comm
 def historique_credit(session: Session_db, idtag: int):
     hi=session.exec(select(UserCredit).where(UserCredit.id_tag == idtag)).all()
     result=[]
+    from api.RFID.RFID_Services import get_rdif_by_id
 
     for i in hi:
         solde=0
-        tag= get_rdif_by_id(session, idtag)
+        tag= get_rdif_by_id(session=session, id=idtag)
         if i.credit_in!=0:
             solde=i.credit_in
         elif i.credit_out!=0:

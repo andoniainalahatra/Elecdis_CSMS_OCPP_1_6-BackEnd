@@ -92,11 +92,13 @@ def get_deleted_rfid(session: Session, page: int = 1, number_items: int = 50):
     return {"data":get_rfid_data_lists(session.exec(select(Tag).where(cast(Tag.state, Integer) == DELETED_STATE)).all(), session), "pagination": pagination.dict()}
 
 def get_rfid_data(data : Tag, session: Session):
+    from api.userCredit.UserCredit_services import get_user_credit_solde_by_idTag
     if data is None:
         return None
     # get last used
     history= (get_rfid_use_history(session, data.id))
     hist =[Historique_rfids( date= data.created_at, action = data.action) for data in history]
+    credit = get_user_credit_solde_by_idTag(session, data.id, data.user_id)
     return Rfid_data(
         id=data.id,
         rfid=data.tag,
@@ -105,8 +107,9 @@ def get_rfid_data(data : Tag, session: Session):
         status=data.status,
         last_used=get_last_used_date_rfid(session, data.id),
         registration=data.created_at,
-        history=hist
-        # ,solde_credit=
+        history=hist,
+        credit=credit.solde,
+        solde_credit=f"{credit.solde} {credit.unit}",
     )
 
 def get_rfid_data_lists(datas: List[Tag], session: Session):
@@ -166,7 +169,6 @@ async def upload_rfid_from_csv(file: UploadFile, session: Session, create_non_ex
 def get_by_tag(session: Session, tag: str):
     return session.exec(select(Tag).where(Tag.tag == tag, Tag.state!=DELETED_STATE )).first()
 def get_rdif_by_id(session: Session, id: int):
-
     datas =get_rfid_data(session.exec(select(Tag).where(Tag.id == id, Tag.state!=DELETED_STATE )).first(), session)
     if datas is None:
         raise HTTPException(status_code=404, detail="RFID not found")
@@ -185,3 +187,10 @@ def get_last_used_date_rfid(session: Session, id_tag: int):
 def get_rfid_use_history(session: Session, id_tag: int):
     return session.exec(select(Rfid_usage_history).where(Rfid_usage_history.tag_id == id_tag)).all()
 
+def check_if_user_should_use_credit(session: Session, tag: str):
+    user = get_user_by_tag(session, tag)
+    if user.subscription is None:
+        return False
+    if user.subscription.is_type_credit:
+        return True
+    return False

@@ -3,6 +3,10 @@ from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel
+
+from core.utils import UNIT_KWH
+
+
 class Rfid_create(BaseModel):
     rfid: str
     user_id: int
@@ -26,7 +30,9 @@ class Rfid_data(BaseModel):
     last_used:Optional[datetime]=""
     registration:Optional[datetime]=""
     history: Optional[list]=[]
-    solde_credit:Optional[float]=0.0
+    solde_credit:Optional[str]=""
+    credit:Optional[float]=0.0
+    credit_unit:Optional[str]=UNIT_KWH
 
 
 

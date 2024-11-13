@@ -104,7 +104,6 @@ class Historique_metter_value(TimestampMixin, table=True):
 class TariffGroup(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
-    new_column: int
 
     tariffs: List["Tariff"] = Relationship(back_populates="tariff_group")
 
@@ -135,16 +134,20 @@ class Contract(TimestampMixin, table=True):
 class Tariff(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
+    description : Optional[str]=""
     tariff_group_id: int = Field(foreign_key="tariffgroup.id")
     start_hour: time
     end_hour: time
     price: float
-    multiplier: Optional[float]=1
+    multiplier: Optional[float]=Field(default=1)
     currency: Optional[str]
-    energy_unit: Optional[str]
+    energy_unit: Optional[str]=""
+    backgroundColor: Optional[str]=""
+    textColor: Optional[str]=""
 
     tariff_group: Optional["TariffGroup"] = Relationship(back_populates="tariffs")
     tariff_snapshots: List["TariffSnapshot"] = Relationship(back_populates="tariff")
+    transactions: List["Transaction"] = Relationship(back_populates="tariff")
 
     __table_args__ = (Index("ix_tariff_id", "id"),)
 
@@ -159,7 +162,9 @@ class Transaction(TimestampMixin, table=True):
     consumed_energy_added:Optional[float]=Field(default=0)
     currency: Optional[str]
     energy_unit: Optional[str]
+    idTariff: Optional[int] = Field(default=None, foreign_key="tariff.id")
     session: Optional["Session"] = Relationship(back_populates="transactions")
+    tariff: Optional["Tariff"] = Relationship(back_populates="transactions")
 
     __table_args__ = (Index("ix_transaction_id", "id"),)
 
@@ -213,6 +218,7 @@ class PaymentMethodUser(TimestampMixin, table=True):
 class Subscription(TimestampMixin, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     type_subscription: str
+    is_type_credit: Optional[bool]=Field(default=False)
 
     users: List["User"] = Relationship(back_populates="subscription")
 
@@ -310,7 +316,7 @@ class Historique_session(TimestampMixin, table=True):
     end_time:Optional[datetime]= Field(default=None)
     state : Optional[int] = Field(default=0)
     idtag:Optional[int] = Field(default=None, foreign_key="tag.id")
-
+    is_credit:Optional[bool]=Field(default=False)
 
     tag : Optional["Tag"] = Relationship(back_populates="historique_session")
     session : List["Session"] = Relationship(back_populates="historique_session")
@@ -325,3 +331,14 @@ class UserCredit(TimestampMixin, table=True):
 
     tag: Optional["Tag"] = Relationship(back_populates="user_credit")
     __table_args__ = (Index("ix_user_credit_id", "id"),)
+
+# class Payements(TimestampMixin, table=True):
+#     id: Optional[int] = Field(default=None, primary_key=True)
+#     user_id: int = Field(foreign_key="user_table.id")
+#     amount: float
+#     unit: str
+#     reason: str
+#     id_historique:Optional[int] = Field(default=None, foreign_key="historique_session.id")
+#     user: Optional["User"] = Relationship(back_populates="payements")
+#     historique_session: Optional["Historique_session"] = Relationship(back_populates="payements")
+#     __table_args__ = (Index("ix_payements_id", "id"),)

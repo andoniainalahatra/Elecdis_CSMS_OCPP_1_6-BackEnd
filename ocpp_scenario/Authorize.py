@@ -15,7 +15,7 @@ from models.elecdis_model import Rfid_usage_history
 logging.basicConfig(level=logging.INFO)
 from core.database import get_session
 from sqlmodel import Session
-from api.RFID.RFID_Services import get_by_tag
+from api.RFID.RFID_Services import get_by_tag, check_if_user_should_use_credit
 from datetime import datetime, timedelta
 import pytz
 
@@ -42,9 +42,11 @@ class Authorize:
                     'expiryDate': expiry_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
                 }
             }
-        if not check_if_has_credit(session,tag.id):
-            status="Blocked"
-            reason="Not enough credit"
+        # check subscription if type credit we do the function bellow else : we go ahead
+        if check_if_user_should_use_credit(session,idTag):
+            if not check_if_has_credit(session,tag.id):
+                status="Blocked"
+                reason="Not enough credit"
         rfid_usage_history.action += f" {status} : {reason}"
         rfid_usage_history.tag_id = tag.id
         session.add(rfid_usage_history)

@@ -14,6 +14,7 @@ from api.dashboard.Dashboard_routes import router as dashboard_routes
 from api.Historique_defaillance.Historique_defaillance_routes import router as historique_defaillance_routes
 from api.userCredit.UserCredit_routes import router as userCredit_routes
 from api.Historique_session.Historique_session_routes import router as history_session_routes
+from api.tarifs.Tarifs_routes  import router as tarifs_routes
 routers = APIRouter()
 
 config_description = str(possible_keys)
