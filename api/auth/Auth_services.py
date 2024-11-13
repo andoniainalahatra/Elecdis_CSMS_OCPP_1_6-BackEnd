@@ -119,6 +119,13 @@ def create_access_token(data: dict):
     )
     return encoded_jwt
 
+def get_user_groups(session: Session, id_user_group: int):
+    name = SUPERADMIN_NAME if id_user_group == 3 else ADMIN_NAME
+    name = CLIENT_NAME if id_user_group == 2 else name
+    user_group = session.exec(select(UserGroup).where(UserGroup.name == name)).first()
+    if user_group == None:
+        user_group = session.exec(select(UserGroup).where(UserGroup.id == id_user_group)).first()
+    return user_group
 
 async def get_current_user(session: Session = Depends(get_session), token: str = Depends(oauth_2_scheme)):
     credentials_exception = HTTPException(

@@ -13,7 +13,7 @@ from models.Pagination import Pagination, Data_display
 from models.elecdis_model import User, Session as SessionModel, Historique_metter_value, Transaction, Historique_session
 from api.transaction.Transaction_models import Session_create, Session_update, Session_list_model, Transaction_details, \
     Session_data_affichage, MeterValueData
-from api.RFID.RFID_Services import get_user_by_tag, get_by_tag
+from api.RFID.RFID_Services import get_user_by_tag, get_by_tag, check_if_user_should_use_credit
 from api.Connector.Connector_services import get_connector_by_id
 from api.Connector.Connector_services import somme_metervalues,update_connector_valeur
 from api.Connector.Connector_models import Connector_update
@@ -94,7 +94,8 @@ def update_session_service_on_stopTransaction(session: Session_db, session_data:
     # create_transaction_by_session(sessionModel=session_model, session_db=session, can_commit=False)
     tag=get_by_tag(session,session_model.tag)
     # debiter le compte user pour la consommation
-    debit_credit_to_user_account_after_session(session, tag.id, session_model.id)
+    if check_if_user_should_use_credit(session, session_model.tag):
+        debit_credit_to_user_account_after_session(session, tag.id, session_model.id)
 
     # terminer la HS :
     end_a_history_session_in_a_transaction(session_model,session)
@@ -289,6 +290,12 @@ def get_transactions_details_by_session(session_db:Session_db, session_id:int, p
     paginations.total_items = count
     datas=Data_display(data=transactions, pagination=paginations)
     return datas
+
+def get_transactions_details_by_session_nopg(session_db:Session_db, session_id:int):
+    transactions = session_db.exec(select(Transaction).where(Transaction.session_id == session_id)).all()
+    datas=transactions
+    return datas
+
 
 def get_transactions_by_user_id(user_id:int, session:Session_db, page:int, number_items:int):
     paginations = Pagination(page=page, limit=number_items)
@@ -501,7 +508,8 @@ def create_and_save_detail_transaction_by_tarif_snapshot(session_id:int, session
             unit_price=ts.tariff.price,
             total_price=(ts.meter_stop-ts.meter_start)*ts.tariff.price,
             consumed_energy=(ts.meter_stop-ts.meter_start),
-            energy_unit=ts.tariff.energy_unit
+            energy_unit=ts.tariff.energy_unit,
+            idTariff=ts.tariff_id
         )
         trans.consumed_energy_added=trans.consumed_energy*ts.tariff.multiplier
         transactions.append(trans)

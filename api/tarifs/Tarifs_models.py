@@ -21,6 +21,7 @@ class Tariff_update(BaseModel):
     start_hour:time = None
     end_hour:time= None
     price:float=None
+    name_tarif:str=None
     description:str=None
     facteur_majoration:float=None
     currency:str=None
