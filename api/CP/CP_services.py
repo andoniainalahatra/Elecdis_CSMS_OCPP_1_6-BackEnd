@@ -62,6 +62,54 @@ def create_historique_chargepoint_status(h:Historique_status_chargepoint_create,
        
     except Exception as e:
         return {"messageError":f"{str(e)}"}
+def search_historique_status_cp(id_cp:str,status:str,start_time:date,end_time:date,session:Session,page: int = 1, number_items: int = 50):
+    try:
+        pagination = Pagination(page=page, limit=number_items)
+        query = select(
+            Historique_status_chargepoint.charge_point_id.label("id_charge_point"),
+            Historique_status_chargepoint.statut.label("statut"),
+            Historique_status_chargepoint.time_last_statut.label("time")
+        )
+
+        if id_cp is not None:
+            query = query.where(Historique_status_chargepoint.charge_point_id == id_cp)
+        if status is not None:
+            query = query.where(Historique_status_chargepoint.statut == status)
+        if start_time is not None:
+            query = query.where(func.date(Historique_status_chargepoint.time_last_statut) >= start_time)
+        if end_time is not None:
+            query = query.where(func.date(Historique_status_chargepoint.time_last_statut) <= end_time)
+
+        query = query.offset(pagination.offset).limit(pagination.limit)
+        histo = session.exec(query).all()
+       
+        count =select(func.count(Historique_status_chargepoint.id))  
+    
+        if id_cp is not None:
+            count = count.where(Historique_status_chargepoint.charge_point_id == id_cp)
+        if status is not None:
+            count = count.where(Historique_status_chargepoint.statut == status)
+        if start_time is not None:
+            count = count.where(func.date(Historique_status_chargepoint.time_last_statut) >= start_time)
+        if end_time is not None:
+            count = count.where(func.date(Historique_status_chargepoint.time_last_statut) <= end_time)
+        c=session.exec(count).first()
+
+        
+        formatted_result = [
+            {
+                "id_charge_point": cp.id_charge_point,
+                "statut": cp.statut,
+                "time": cp.time
+                
+            }
+            for cp in histo
+        ]
+
+        pagination.total_items = c
+        return {"data": formatted_result, "pagination":pagination.dict()}
+    except Exception as e:
+        return {"messageError": f"Error: {str(e)}"}
     
 def read_historique_staus_cp(session : Session,page: int = 1, number_items: int = 50):
     try:
@@ -826,6 +874,32 @@ def status_cp(session:Session):
     ]
     
     return stats
+
+
+
+async def send_clearcache(charge_point_id: str):
+    import uuid
+    
+    message = [2,str(uuid.uuid4()),"ClearCache",{}]
+    response_json = {
+        "charge_point_id": charge_point_id,
+        "payload": message
+    }
+        
+    try:
+        connection = await aio_pika.connect_robust(CONNECTION_RABBIT)
+        async with connection:
+            channel = await connection.channel()
+            exchange = await channel.get_exchange("micro_ocpp") 
+            await exchange.publish(
+                AioPikaMessage(body=json.dumps(response_json).encode()),
+                routing_key="02"
+            )
+
+
+        return {"status": "Message sent", "response": message}
+    except Exception as e:
+        print(str(e))
     
     
 
