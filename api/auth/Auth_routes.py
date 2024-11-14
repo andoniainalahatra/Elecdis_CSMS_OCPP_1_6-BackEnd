@@ -71,7 +71,8 @@ async def register_user(registered_user: UserRegister, session = Depends(get_ses
 async def forgot_password(email: str, tasks: BackgroundTasks):
     session = next(get_session())
     try:
-        tasks.add_task(forgot_password_method, email, session)
+        # tasks.add_task(forgot_password_method, email, session)
+        await forgot_password_method(email, session)
         return {"message": "Recovery code sent to email", "status": "success","status_code":200, "email": email}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
