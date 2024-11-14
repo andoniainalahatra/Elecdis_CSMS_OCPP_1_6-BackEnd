@@ -177,9 +177,9 @@ def create_histo(create_data:Historique_status_chargepoint_create,session : Sess
         raise e
     
 @router.get("/historique_status_chargepoint")
-def read_historique_status_cp(session : Session=Depends(get_session)):
+def read_historique_status_cp(session : Session=Depends(get_session),page: int = 1, number_items: int = 50):
     try:
-      return read_historique_staus_cp(session)
+      return read_historique_staus_cp(session,page,number_items)
     except Exception as e:
         raise e
     
@@ -202,10 +202,10 @@ async def send_cache(charge_point_id: str):
         return {"error": "Invalid datetime format"}
     
 @router.get("/search_historique_status_chargepoint")  
-def search_historique_status_chargepoint(id_cp: str = None,status: str = None,start_time: date = None,end_time: date = None,session : Session=Depends(get_session)):
+def search_historique_status_chargepoint(id_cp: str = None,status: str = None,start_time: date = None,end_time: date = None,session : Session=Depends(get_session),page: int = 1, number_items: int = 50):
     try:
       print(id_cp,status,start_time,end_time)
-      return search_historique_status_cp(id_cp,status,start_time,end_time,session)
+      return search_historique_status_cp(id_cp,status,start_time,end_time,session,page,number_items)
     except Exception as e:
         raise e
     

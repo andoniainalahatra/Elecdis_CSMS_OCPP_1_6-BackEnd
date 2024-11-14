@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from api.CP.CP_services import send_remoteStartTransaction
 from api.Historique_session.Historique_session_models import historique_session_data, Facture_data, Tarif_applique
+from core.config import EXPIRY_TIME_MINUTE
 from models.elecdis_model import Historique_session, Session as Session_model, ChargePoint, Connector
 from sqlmodel import Session as Session_db, desc
 from api.RFID.RFID_Services import *
@@ -24,6 +25,7 @@ def get_historique_session_data(historiqueSession : Historique_session, session_
     total_price:float = 0
     currency = CURRENCY_AR
     energy_unit = UNIT_KWH
+
     for i in liste_sessions:
         data = get_sums_transactions(session_id=i.id,session=session_db)
         print(data)
@@ -31,6 +33,9 @@ def get_historique_session_data(historiqueSession : Historique_session, session_
         total_price+= float(data.total_price)
         currency = data.currency
         energy_unit = data.energy_unit
+    expiration = False
+    if historiqueSession.expiry_date < datetime.now():
+        expiration=True
 
     return historique_session_data(
         id=historiqueSession.id,
@@ -46,7 +51,8 @@ def get_historique_session_data(historiqueSession : Historique_session, session_
         total_price=total_price,
         currency=currency,
         energy_unit=energy_unit,
-        is_credit= historiqueSession.is_credit
+        is_credit= historiqueSession.is_credit,
+        is_expired=expiration
     )
 
 def get_lists_historique_datas(historique:List[Historique_session], session_db:Session_db):
@@ -108,6 +114,7 @@ def get_history_for_a_session(id_tag:int, session_db:Session_db, start_time):
 def end_a_history_session(historique:Historique_session,end_time:datetime, session_db:Session_db):
     historique.end_time = end_time
     historique.state = DELETED_STATE
+    historique.expiry_date = datetime.now()+timedelta(minutes=EXPIRY_TIME_MINUTE)
     session_db.add(historique)
     session_db.flush()
     return historique
@@ -118,14 +125,14 @@ def end_a_history_session_in_a_transaction(session_trans:Session_model, session_
 
 def get_all_history(session_db:Session_db, pagination:Pagination ):
     count_query= session_db.exec(select(func.count(Historique_session.id))).first()
-    query = session_db.exec(select(Historique_session).order_by(Historique_session.id).offset(pagination.offset).limit(pagination.limit)).all()
+    query = session_db.exec(select(Historique_session).order_by(desc(Historique_session.id)).offset(pagination.offset).limit(pagination.limit)).all()
     pagination.total_items=count_query
     return {"data":get_lists_historique_datas(query,session_db),"pagination":pagination.dict()}
 
 def get_all_session_from_history(id_history:int, session_db:Session_db, pagination:Pagination):
     from api.transaction.Transaction_service import get_list_session_data_2
     query_count = session_db.exec(select(func.count(Session_model.id)).where(Session_model.id_historique_session==id_history)).first()
-    query = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_history).order_by(Session_model.id).offset(pagination.offset).limit(pagination.limit)).all()
+    query = session_db.exec(select(Session_model).where(Session_model.id_historique_session==id_history).order_by(desc(Session_model.id)).offset(pagination.offset).limit(pagination.limit)).all()
     pagination.total_items=query_count
     return {"data":get_list_session_data_2(query,session_db),"pagination":pagination.dict()}
 def get_all_session_from_history_no_pg(id_history:int, session_db:Session_db):

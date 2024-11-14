@@ -29,3 +29,9 @@ class Tariff_update(BaseModel):
     backgroundColor:str=""
     textColor:str=""
     category:int
+
+class TariffGroup_create(BaseModel):
+    name: str
+
+class TariffGroup_update(BaseModel):
+    name: str = None

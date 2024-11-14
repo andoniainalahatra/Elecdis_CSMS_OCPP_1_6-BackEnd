@@ -1,6 +1,6 @@
 from api.CP.CP_models import Cp_create,Cp_update,Cp_form,Historique_status_chargepoint_create
 from models.elecdis_model import ChargePoint,StatusEnum,Connector,Historique_metter_value,Historique_status_chargepoint
-from sqlmodel import Session, select,func,extract,case
+from sqlmodel import Session, select,func,extract,case,desc
 from models.Pagination import Pagination
 from fastapi import UploadFile
 from core.utils import *
@@ -80,7 +80,7 @@ def search_historique_status_cp(id_cp:str,status:str,start_time:date,end_time:da
         if end_time is not None:
             query = query.where(func.date(Historique_status_chargepoint.time_last_statut) <= end_time)
 
-        query = query.offset(pagination.offset).limit(pagination.limit)
+        query = query.order_by(desc(Historique_status_chargepoint.time_last_statut)).offset(pagination.offset).limit(pagination.limit)
         histo = session.exec(query).all()
        
         count =select(func.count(Historique_status_chargepoint.id))  
@@ -121,6 +121,7 @@ def read_historique_staus_cp(session : Session,page: int = 1, number_items: int 
                 Historique_status_chargepoint.time_last_statut.label("time")
                 
             )
+            .order_by(desc(Historique_status_chargepoint.time_last_statut))
             .offset(pagination.offset)  
             .limit(pagination.limit)
         ).all()
