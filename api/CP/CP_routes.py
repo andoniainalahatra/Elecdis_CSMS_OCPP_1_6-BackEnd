@@ -85,13 +85,16 @@ async def import_from_csv_cp(file: UploadFile = File(...), session : Session = D
 
 @router.post("/send_remoteStopTransaction/{charge_point_id}/{transaction_id}")
 async def send_messageRemoteStopTransaction(charge_point_id: str, transaction_id: int, session:Session=Depends(get_session)):
+    import logging
+    logging.basicConfig(level=logging.INFO)
     try:
         transaction = get_last_current_session(transaction_id,session)
         if transaction==None:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str("Aucune transaction en cours"))
-        return await send_remoteStopTransaction(charge_point_id,transaction_id)
+
+        return await send_remoteStopTransaction(charge_point_id,transaction.id)
     except Exception as e:
-        raise e
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str("an error has occured"))
 @router.post("/send_remoteStartTransaction/{charge_point_id}/{idTag}/{connectorId}")
 async def send_messageRemoteStartTransaction(charge_point_id: str, idTag:str,connectorId:str):
     try:
