@@ -114,7 +114,7 @@ def get_history_for_a_session(id_tag:int, session_db:Session_db, start_time):
 def end_a_history_session(historique:Historique_session,end_time:datetime, session_db:Session_db):
     historique.end_time = end_time
     historique.state = DELETED_STATE
-    historique.expiry_date = datetime.now()+timedelta(minutes=EXPIRY_TIME_MINUTE)
+    historique.expiry_date = datetime.now()+timedelta(minutes=int(EXPIRY_TIME_MINUTE))
     session_db.add(historique)
     session_db.flush()
     return historique

@@ -25,7 +25,15 @@ class MeterValue:
 
 
         session_db=next(get_session())
-        meter= create_metervalue_from_mvdata(mvdata=meterValue[0].get('sampledValue'),connectorId=connectorId,transactionId=int(kwargs.get('transactionId')),dateMeter= datetime.strptime(meterValue[0].get('timestamp'), "%Y-%m-%dT%H:%M:%S.%fZ"))
+        dates = None
+        try:
+            dates= datetime.strptime(meterValue[0].get('timestamp'), "%Y-%m-%dT%H:%M:%S%z")
+        except ValueError:
+            dates = datetime.strptime(meterValue[0].get('timestamp'), "%Y-%m-%dT%H:%M:%S.%fZ")
+        meter= create_metervalue_from_mvdata(mvdata=meterValue[0].get('sampledValue'),
+                                             connectorId=connectorId,
+                                             transactionId=int(kwargs.get('transactionId')),
+                                             dateMeter= dates)
         manage_tarif_snapshots_on_meter_values(meter, session_db,logging)
         session = get_session_by_id(session_db,meter.transactionId)
         tag=get_by_tag(session_db,session.tag)

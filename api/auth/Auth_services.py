@@ -279,7 +279,7 @@ def generate_recovery_code(length=6):
 async def forgot_password_method(email: str, session: Session):
     user = get_user_from_email(email=email, session=session)
     if user is None:
-        raise EmailException(f"User with email {email} does not exist")
+        raise EmailException(f"Cet email :  {email} n'existe pas.")
     recovery_code = generate_recovery_code()
     expiration_date = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     # save recovery code in the database
