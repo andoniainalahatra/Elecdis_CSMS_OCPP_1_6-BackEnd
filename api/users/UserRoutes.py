@@ -114,7 +114,7 @@ def delete_user_by_id(id: int,
         delete_user(id, session)
     except Exception as e:
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail=str(e))
-    return {"message": "User deleted successfully"}
+    raise HTTPException(status_code= status.HTTP_200_OK, detail="User deleted successfully")
 @router.get("/new_clients/")
 def get_new_clients(
         # _: Annotated[bool, Depends(RoleChecker(allowed_roles=["Admin"]))],
@@ -139,7 +139,7 @@ def count_all_new_clients_based_on_month_and_years(
 
 @router.post("/import_users_from_csv")
 async def import_users_from_csv(
-        _: Annotated[bool, Depends(RoleChecker(allowed_roles=[ADMIN_NAME]))],
+        # _: Annotated[bool, Depends(RoleChecker(allowed_roles=[ADMIN_NAME]))],
         file: UploadFile = File(...),
                                 session: Session = Depends(get_session)):
     message = await upload_user_from_csv(file, session)
@@ -147,5 +147,5 @@ async def import_users_from_csv(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(message["logs"]))
     else:
         print(message)
-    return {"message": "Users imported successfully"}
+    raise HTTPException(status_code=status.HTTP_200_OK, detail="Users imported successfully")
 

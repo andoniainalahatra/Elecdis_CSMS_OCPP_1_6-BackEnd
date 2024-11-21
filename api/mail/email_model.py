@@ -13,18 +13,25 @@ ACTIVE_STATE = 1
 session = next(get_session())
 
 
+
 class Email_model(BaseModel):
-    greetings: str = "Hello"
+    greetings: str = "Bonjour"
     username: str
-    paragraph_1: str = "We received a request to reset your password. Please use the following code to reset your password:"
-    code: str
-    paragraph_2: str = "If you did not request a password reset, please ignore this email or contact support if you have any questions."
-    ending_1: str = "Thanks,"
-    ending_2: str = "The Team"
-    subject: str = "Password Recovery"
+    paragraph_1: str = "Nous avons reçu une demande de réinitialisation de votre mot de passe. Veuillez utiliser le code suivant pour réinitialiser votre mot de passe :"
+    code: str=""
+    email_v:str=""
+    password :str=""
+    paragraph_2: str = "Si vous n'avez pas demandé de réinitialisation de mot de passe, veuillez ignorer cet e-mail ou contacter le support si vous avez des questions."
+    ending_1: str = "Merci,"
+    ending_2: str = "La Team"
+    subject: str = "Réinitialisation de mot de passe"
     email:str
 
     def get_email_html_models(self):
+        if self.email_v!="":
+            self.email_v=f"Email: {self.email_v}"
+        if self.password!="":
+            self.password=f"Mot de passe: {self.password}"
         html = (f"""
         <!DOCTYPE html>
             <html lang="en">
@@ -63,7 +70,7 @@ class Email_model(BaseModel):
             <p class="text-gray-700">{self.greetings} {self.username} ,</p>
             <p class="text-gray-700 mt-4">{self.paragraph_1}</p>
             <div class="bg-red-50 border border-red-200 text-red-900 text-center text-xl font-bold py-4 mt-6 rounded">
-            {self.code}
+            {self.code} {self.email_v} {self.password}
             </div>
             <div class="flex justify-center items-center h-20">
                 <a href="{CODE_LINK}" type="button" class="text-white bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:bg-gradient-to-br focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2">click here</a>

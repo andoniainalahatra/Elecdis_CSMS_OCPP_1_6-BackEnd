@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
 from api.transaction.Transaction_service import *
@@ -50,8 +50,13 @@ def get_heures_de_pointes_des_sessions(session: Session = Depends(get_session)):
 def get_graphes_sessions(session: Session = Depends(get_session), date_selected:Optional[date]=datetime.now().date()):
     return get_session_data_chart(session,date_selected)
 @router.get("/search_transactions")
-def search_transactions(date_start:Optional[date]=None, date_end:Optional[date]=None,montant_debut:Optional[float]=None, montant_fin:Optional[float]=None, energy_debut:Optional[float]=None,energy_fin:Optional[float]=None, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
-    return search_transactions_by_date(session, date_start, date_end,montant_fin,montant_debut,energy_fin,energy_debut, page, number_items)
+def search_transactions(state:str="all",date_start:Optional[date]=None, date_end:Optional[date]=None,montant_debut:Optional[float]=None, montant_fin:Optional[float]=None, energy_debut:Optional[float]=None,energy_fin:Optional[float]=None, session: Session = Depends(get_session), page:Optional[int]=1, number_items:Optional[int]=50):
+    # return search_transactions_by_date(session, date_start, date_end,montant_fin,montant_debut,energy_fin,energy_debut, page, number_items)
+    try:
+        return search_transaction_by_date_v3(state,session, date_start, date_end,montant_fin,montant_debut,energy_fin,energy_debut, page, number_items)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 @router.get("/test")
 async def test(session: Session = Depends(get_session), id_sess:Optional[int]=1):
