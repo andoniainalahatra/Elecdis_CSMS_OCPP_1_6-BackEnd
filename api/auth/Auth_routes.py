@@ -41,6 +41,7 @@ async def register_user(registered_user: UserRegister):
     user = None
     try:
         user = register(newUser, session)
+        await send_email_to_an_admin(newUser.email, registered_user.password)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return login(user.email, registered_user.password, session)

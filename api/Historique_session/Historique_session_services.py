@@ -28,7 +28,6 @@ def get_historique_session_data(historiqueSession : Historique_session, session_
 
     for i in liste_sessions:
         data = get_sums_transactions(session_id=i.id,session=session_db)
-        print(data)
         total_energy+= float(data.consumed_energy)
         total_price+= float(data.total_price)
         currency = data.currency
@@ -40,15 +39,18 @@ def get_historique_session_data(historiqueSession : Historique_session, session_
     return historique_session_data(
         id=historiqueSession.id,
         rfid=tag.rfid,
+        id_tag=tag.id,
         user_name=tag.user_name,
         start_time=historiqueSession.start_time,
         end_time=historiqueSession.end_time,
         state="en cours" if historiqueSession.state==DEFAULT_STATE else "terminé",
-        connector_id=session_model.connector_id,
+        connector_id=session_model.connector_id[0] if session_model.connector_id is not None else None,
         chargepoint_id=chargePoint.id,
         address=chargePoint.adresse,
         total_energy=total_energy,
         total_price=total_price,
+        total_energy_unit=f"{total_energy} {energy_unit}",
+        total_price_unit=f"{total_price} {currency}",
         currency=currency,
         energy_unit=energy_unit,
         is_credit= historiqueSession.is_credit,
@@ -74,7 +76,6 @@ def get_last_session_in_history(id_history:int, session_db:Session_db):
 def check_if_last_session_in_history_ended_normaly(id_history:int, session_db:Session_db):
     last_session = get_last_session_in_history(id_history,session_db)
     ending=["Local","Remote","EVDisconnected"]
-    print(f" last session : {last_session}")
     if last_session.reason in ending:
         return True
     return False
@@ -85,7 +86,6 @@ def check_if_we_need_to_create_HS_or_not(last_history: Historique_session, sessi
     if last_hs is None:
         return True
     if check_if_history_passed_expiration_date(last_hs):
-        print("past expiration date")
         return True
     # if check_if_last_session_in_history_ended_normaly(last_hs.id,session_db):
     #     print("ended normaly")
@@ -95,7 +95,6 @@ def check_if_we_need_to_create_HS_or_not(last_history: Historique_session, sessi
 def get_history_for_a_session(id_tag:int, session_db:Session_db, start_time):
     last_history = get_last_historique_by_idtag(id_tag,session_db)
     if check_if_we_need_to_create_HS_or_not(last_history,session_db):
-        print("need to recreate")
         hs = Historique_session(
             idtag=id_tag,
             expiry_date=datetime.now()+timedelta(hours=EXPIRATION_HOUR),
@@ -106,7 +105,6 @@ def get_history_for_a_session(id_tag:int, session_db:Session_db, start_time):
         session_db.flush()
         return hs
     last_history.state=DEFAULT_STATE
-    print("no need to recreate")
     session_db.add(last_history)
     session_db.flush()
     return last_history
@@ -125,7 +123,7 @@ def end_a_history_session_in_a_transaction(session_trans:Session_model, session_
 
 def get_all_history(session_db:Session_db, pagination:Pagination ):
     count_query= session_db.exec(select(func.count(Historique_session.id))).first()
-    query = session_db.exec(select(Historique_session).order_by(desc(Historique_session.id)).offset(pagination.offset).limit(pagination.limit)).all()
+    query = session_db.exec(select(Historique_session).order_by(desc(Historique_session.end_time)).offset(pagination.offset).limit(pagination.limit)).all()
     pagination.total_items=count_query
     return {"data":get_lists_historique_datas(query,session_db),"pagination":pagination.dict()}
 

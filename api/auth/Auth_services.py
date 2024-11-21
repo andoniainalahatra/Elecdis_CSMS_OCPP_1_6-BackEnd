@@ -275,6 +275,14 @@ def generate_recovery_code(length=6):
     recovery_code = ''.join([str(random.randint(0, 9)) for _ in range(length)])
     return recovery_code
 
+async def send_email_to_an_admin( email: str, password: str):
+    email_model = Email_model(username="Elecdis", email=email, password=password)
+    email_model.subject = "Elecdis - Votre compte Admin a été crée"
+    email_model.paragraph_1 = "Votre compte Admin a été crée avec succès."
+    email_model.paragraph_2 = "Vous pouvez vous connecter à votre compte en utilisant ces informations de connexion."
+    email_model.email_v = email
+    email_model.password = password
+    await send_email(email_model, recipient=[email])
 
 async def forgot_password_method(email: str, session: Session):
     user = get_user_from_email(email=email, session=session)
