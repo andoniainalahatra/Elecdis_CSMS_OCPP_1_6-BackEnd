@@ -876,8 +876,7 @@ def status_cp(session:Session):
     for cp in charge_points_with_connectors:
         charging_count = sum(1 for connector in cp.connectors if connector.status == "Charging")
         total_connectors = len(cp.connectors)-1
-
-        if charging_count == total_connectors: 
+        if charging_count == total_connectors and charging_count!=0: 
             total_occuped_cp += 1
         elif charging_count > 0:
             total_part_occuped_cp += 1
