@@ -8,7 +8,7 @@ from models.elecdis_model import StatusEnum
 from ocpp.exceptions import OCPPError
 from datetime import datetime, timedelta
 logging.basicConfig(level=logging.INFO)
-from api.CP.CP_services import update_cp_status
+from api.CP.CP_services import update_cp_status,read_detail_cp
 from api.CP.CP_models import Cp_update
 from api.Connector.Connector_services import update_connector_status
 from api.Connector.Connector_models import Connector_update
@@ -55,10 +55,12 @@ class ChargePoint(cp):
     
     #@on(Action.Heartbeat)
     async def on_heartbeat(self, **kwargs):
+        session=next(get_session())
         async with self.lock:
             self.heartbeat_count += 1
             self.last_heartbeat_time = datetime.now()
-            logging.info(f"Heartbeat received for {self.id}. Count: {self.heartbeat_count}")
+            result=read_detail_cp(self.id,session)
+            logging.info(f"Heartbeat received for {result[0].get('charge_point_vendors')}. Count: {self.heartbeat_count}")
             if self.monitoring_task is None:
                 self.monitoring_task = asyncio.create_task(self.monitor_heartbeats())
 
