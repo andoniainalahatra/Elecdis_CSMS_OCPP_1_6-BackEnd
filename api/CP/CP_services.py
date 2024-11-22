@@ -1,9 +1,10 @@
 from api.CP.CP_models import Cp_create,Cp_update,Cp_form,Historique_status_chargepoint_create
 from models.elecdis_model import ChargePoint,StatusEnum,Connector,Historique_metter_value,Historique_status_chargepoint
-from sqlmodel import Session, select,func,extract,case,desc
+from sqlmodel import Session, select,func,extract,case,desc,not_
 from models.Pagination import Pagination
 from fastapi import UploadFile
 from core.utils import *
+from sqlalchemy.orm import selectinload
 from sqlalchemy import or_
 from datetime import date, datetime,timedelta
 import aio_pika
@@ -201,8 +202,7 @@ def update_cp_boot(id_cp:str,cp:Cp_update,session : Session,can_commit=True):
     charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
     if charge is None:
         raise Exception(f"CP  with id {id_cp} does not exist.")
-    histo=Historique_status_chargepoint_create(charge_point_id=id_cp,status=charge.status,time_last_status=charge.updated_at)
-    create_historique_chargepoint_status(histo,session)
+    
     if can_commit:
         session.commit()
     charge.status=cp.status
@@ -210,7 +210,8 @@ def update_cp_boot(id_cp:str,cp:Cp_update,session : Session,can_commit=True):
     charge.charge_point_vendors=cp.charge_point_vendors
     charge.updated_at=cp.time+timedelta(hours=3)
     charge.firmware_version=cp.firmware_version
-    
+    histo=Historique_status_chargepoint_create(charge_point_id=id_cp,status=charge.status,time_last_status=charge.updated_at)
+    create_historique_chargepoint_status(histo,session)
     session.add(charge)
     session.commit()
     session.refresh(charge)
@@ -222,12 +223,12 @@ def update_cp_status(id_cp:str,cp:Cp_update,session : Session,can_commit=True):
     charge=session.exec(select(ChargePoint).where(ChargePoint.id == id_cp)).first()
     if charge is None:
         raise Exception(f"CP  with id {id_cp} does not exist.")
-    histo=Historique_status_chargepoint_create(charge_point_id=id_cp,status=charge.status,time_last_status=charge.updated_at)
-    create_historique_chargepoint_status(histo,session)
     if can_commit:
         session.commit()
     charge.status=cp.status
     charge.updated_at=cp.time+ timedelta(hours=3)
+    histo=Historique_status_chargepoint_create(charge_point_id=id_cp,status=charge.status,time_last_status=charge.updated_at)
+    create_historique_chargepoint_status(histo,session)
     session.add(charge)
     session.commit()
     session.refresh(charge)
@@ -852,25 +853,58 @@ def map_cp(session:Session):
     return formatted_result
 
 def status_cp(session:Session):
+    total_cp=session.exec(
+        select(func.count(ChargePoint.id)).where(ChargePoint.state==ACTIVE_STATE)
+    ).first()
   
     total_unavailable_cp = session.exec(
         select(func.count(ChargePoint.id)).where(ChargePoint.status == "Unavailable").where(ChargePoint.state==ACTIVE_STATE)
     ).first()
-    total_charging_cp = session.exec(
-        select(func.count(ChargePoint.id)).where(ChargePoint.status == "Available").where(ChargePoint.state==ACTIVE_STATE)
-    ).first()
+    charge_points_with_connectors = session.exec(
+        select(ChargePoint)
+        .distinct()
+        .join(Connector, ChargePoint.id == Connector.charge_point_id)  
+        .where(ChargePoint.state == ACTIVE_STATE) 
+        
+    ).all()
+    for cp in charge_points_with_connectors:
+        print(f"ChargePoint ID: {cp.id}")
+        for connector in cp.connectors:
+            print(f"  Connector ID: {connector.id}, Status: {connector.status}")
+    total_part_occuped_cp = 0
+    total_occuped_cp = 0
+    for cp in charge_points_with_connectors:
+        charging_count = sum(1 for connector in cp.connectors if connector.status == "Charging")
+        total_connectors = len(cp.connectors)-1
 
+        if charging_count == total_connectors: 
+            total_occuped_cp += 1
+        elif charging_count > 0:
+            total_part_occuped_cp += 1
     
-    stats = [
+
+    total_available_cp = total_cp-(total_part_occuped_cp+total_occuped_cp+total_unavailable_cp)
+    
+    stats =[
         {
             "status": "available",
-            "value": total_charging_cp,
+            "value": total_available_cp,
             "fill": "var(--color-available)"
         },
         {
             "status": "unavailable",
             "value": total_unavailable_cp,
             "fill": "var(--color-unavailable)"
+        },
+        {
+            "status": "partielement occupé",
+            "value": total_part_occuped_cp,
+            "fill": "var(--color-part_occuped)"
+        },
+        {
+            "status": "occupé",
+            "value": total_occuped_cp,
+            "fill": "var(--color-occuped)"
         }
     ]
     

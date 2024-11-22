@@ -56,8 +56,8 @@ def update_connector_status(id_connector:str,connector:Connector_update,session 
         if conne.updated_at is None:
             raise Exception("Connector 'updated_at' timestamp is missing and is required.")
         
-        histo = Historique_status_create(real_connector_id=id_connector, status=conne.status,time_last_status=conne.updated_at)
-        create_historique_status(histo, session)  
+        #histo = Historique_status_create(real_connector_id=id_connector, status=conne.status,time_last_status=conne.updated_at)
+        #create_historique_status(histo, session)  
         if can_commit:
             session.commit()  
         #logging.info(f"Historique inséré pour le connecteur ID: {id_connector} avec le statut: {conne.status}")
