@@ -55,12 +55,10 @@ class ChargePoint(cp):
     
     #@on(Action.Heartbeat)
     async def on_heartbeat(self, **kwargs):
-        session=next(get_session())
         async with self.lock:
             self.heartbeat_count += 1
             self.last_heartbeat_time = datetime.now()
-            result=read_detail_cp(self.id,session)
-            logging.info(f"Heartbeat received for {result[0].get('charge_point_vendors')}. Count: {self.heartbeat_count}")
+            logging.info(f"Heartbeat received for {self.id}. Count: {self.heartbeat_count}")
             if self.monitoring_task is None:
                 self.monitoring_task = asyncio.create_task(self.monitor_heartbeats())
 
