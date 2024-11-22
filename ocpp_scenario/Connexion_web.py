@@ -14,8 +14,7 @@ from ocpp_scenario.Consumer_rabbit2 import ConsumerRabbit2
 from ocpp_scenario.Response import Response
 from ocpp_scenario.Consumer_Error import ConsumerError
 from typing import Dict
-from core.database import get_session
-from api.CP.CP_services import read_detail_cp
+
 
 logging.basicConfig(level=logging.INFO)
 class Connexion:
@@ -74,11 +73,9 @@ class Connexion:
             logging.error(f"Error during message reception: {e}")
         finally:
             # S'assurer que la connexion est proprement fermée
-            session=next(get_session())
             if not websocket.closed:
                 await websocket.close()
-            result=read_detail_cp(charge_point_id,session)
-            logging.info(f"WebSocket connection closed properly for {result[0].get('charge_point_vendors')}")
+            logging.info(f"WebSocket connection closed properly for {charge_point_id}")
     @staticmethod
     async def process_messages(message_queue,failed_message_queue,rabbit_mq):
         while True:
@@ -92,14 +89,12 @@ class Connexion:
     @staticmethod       
     async def on_connect(websocket,path):
         try:
-            session=next(get_session())
             charge_point_id = path.strip('/')
             logging.info(f"Connection attempt on path: {charge_point_id}")
             
             
             Connexion.connections[charge_point_id] = websocket
-            result=read_detail_cp(charge_point_id,session)
-            logging.info(f"WebSocket connection established for {result[0].get('charge_point_vendors')}")
+            logging.info(f"WebSocket connection established for {charge_point_id}")
 
             rabbitmq_publisher = Connexion_rabbit()
             connection = await rabbitmq_publisher.get_rabbit_connection()
