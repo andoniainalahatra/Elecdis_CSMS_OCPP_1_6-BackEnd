@@ -90,7 +90,7 @@ class Reservation(TimestampMixin,table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     connector_id: Optional[str]= Field(foreign_key="connector.id")
     date_reservation:datetime = Field(nullable=False)
-    user:Optional[int]=Field(default=None, foreign_key="user_table.id")
+    user_id: Optional[int] = Field(default=None, foreign_key="user_table.id")
     status:Optional[str]=""
     user: Optional["User"] = Relationship(back_populates="reservations")
     connector: Optional["Connector"] = Relationship(back_populates="reservations")
