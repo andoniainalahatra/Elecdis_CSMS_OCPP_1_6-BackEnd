@@ -78,11 +78,22 @@ class Connector(TimestampMixin, table=True):
     charge_point: Optional["ChargePoint"] = Relationship(back_populates="connectors")
     historique_status: List["Historique_status"] = Relationship(back_populates="connector")
     historique_metter_value: List["Historique_metter_value"] = Relationship(back_populates="connector")
+    reservations:List["Reservation"] = Relationship(back_populates="connector")
     __table_args__ = (
         # PrimaryKeyConstraint('id', 'charge_point_id'),
         UniqueConstraint('id', 'charge_point_id', name='uq_connector_id_charge_point_id'),
 
         Index("ix_connector_id", "id"),)
+    
+
+class Reservation(TimestampMixin,table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    connector_id: Optional[str]= Field(foreign_key="connector.id")
+    date_reservation:datetime = Field(nullable=False)
+    user:Optional[int]=Field(default=None, foreign_key="user_table.id")
+    status:Optional[str]=""
+    user: Optional["User"] = Relationship(back_populates="reservations")
+    connector: Optional["Connector"] = Relationship(back_populates="reservations")
 
 
 class Historique_status(TimestampMixin, table=True):
@@ -200,6 +211,7 @@ class User(TimestampMixin, table=True):
 
     payment_methods: List["PaymentMethodUser"] = Relationship(back_populates="user")
     reset_codes: List["User_reset_code"] = Relationship(back_populates="user")
+    reservations:List["Reservation"] = Relationship(back_populates="user")
 
     __table_args__ = (Index("ix_user_table_id", "id"),)
 
