@@ -37,14 +37,14 @@ def get_all_sessions(session: Session = Depends(get_session), page:Optional[int]
     return get_all_session(session, Pagination(page=page, limit=number_items))
 
 
-
 @router.get("/average_duration")
-def get_average_duration_of_sessions(session: Session = Depends(get_session)):
-    return moyenne_session_duration(session)
+def get_average_duration_of_sessions(date_selected:Optional[date]=None,session: Session = Depends(get_session)):
+    return moyenne_session_duration(session) if date_selected==None else moyenne_session_duration_by_date(session, date_selected)
 
 @router.get("/heures_de_pointes")
-def get_heures_de_pointes_des_sessions(session: Session = Depends(get_session)):
-    return get_heures_de_pointes(session)
+def get_heures_de_pointes_des_sessions(date_selected:Optional[date]=None, session: Session = Depends(get_session)):
+    return get_heures_de_pointes(session) if date_selected==None else get_heures_de_pointes_by_date(session, date_selected)
+
 
 @router.get("/graphes_sessions")
 def get_graphes_sessions(session: Session = Depends(get_session), date_selected:Optional[date]=datetime.now().date()):

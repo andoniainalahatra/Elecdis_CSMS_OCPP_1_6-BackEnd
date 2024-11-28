@@ -1,4 +1,9 @@
 from fastapi import APIRouter
+
+from ocpp_scenario.ChangeAvailability import ChangeAvailability
+from ocpp_scenario.GetCompositeSchedule import GetCompositeSchedule
+from ocpp_scenario.clear_cache import ClearCacheHandler
+
 router = APIRouter()
 
 from ocpp_scenario.GetConfiguration import *
@@ -61,3 +66,10 @@ async def get_configuration(key:str, charge_point_id:str):
 @router.post("/change_configuration", description=summary)
 async def change_configuration(key:str, value:str, charge_point_id:str):
     return await GetConfiguration().change_configuration(key,value,charge_point_id)
+@router.post("/change_availability", description="permet de modifier l'etat d'un connecteur : deux états possible : Inoperative ou Operative")
+async def change_availability(state_type:str, connectorId:str, charge_point_id:str):
+    return await ChangeAvailability().change_availability(state_type,connectorId,charge_point_id)
+@router.post("/get_composite_schedule", description="")
+async def change_availability(duration: int,chargingRateUnit:str, connectorId:str, charge_point_id:str):
+    return await GetCompositeSchedule().get_composite_schedule(duration,chargingRateUnit,connectorId,charge_point_id)
+
