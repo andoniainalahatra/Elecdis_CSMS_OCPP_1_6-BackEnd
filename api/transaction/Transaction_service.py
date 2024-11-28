@@ -370,7 +370,35 @@ def moyenne_session_duration(session: Session):
         "max": result.max
     }
     return result_dict
-
+def moyenne_session_duration_by_date(session: Session, date_selected: date):
+    query = select(
+        func.to_char(
+            text("interval '1 second'") * func.avg(
+                func.extract('epoch', SessionModel.end_time - SessionModel.start_time)),
+            'HH24 h MI mn SS s'
+        ).label('avg'),
+        func.to_char(
+            text("interval '1 second'") * func.min(
+                func.extract('epoch', SessionModel.end_time - SessionModel.start_time)),
+            'HH24 h MI mn SS s'
+        ).label('min'),
+        func.to_char(
+            text("interval '1 second'") * func.max(
+                func.extract('epoch', SessionModel.end_time - SessionModel.start_time)),
+            'HH24 h MI mn SS s'
+        ).label('max')
+    ).where(
+        SessionModel.id != -1,
+        SessionModel.end_time.isnot(None),
+        func.date(SessionModel.start_time) == date_selected
+    )
+    result = session.exec(query).one()
+    result_dict = {
+        "avg": result.avg if result.avg is not None else "00 h 00 mn 00 s",
+        "min": result.min if result.min is not None else "00 h 00 mn 00 s",
+        "max": result.max if result.max is not None else "00 h 00 mn 00 s"
+    }
+    return result_dict
 
 def get_heures_de_pointes(session: Session):
     query = select(
@@ -646,3 +674,18 @@ def get_unit(unit):
         return UNIT_KWH
     if unit == "Wh" or unit == "wh" or unit == "WH" or unit == "Wh":
         return UNIT_WH
+def get_heures_de_pointes_by_date(session: Session_db, date_selected: date):
+    query = select(
+        func.to_char(
+            func.date_trunc('hour', SessionModel.start_time),
+            'HH24:MI:SS'
+        ).label('hour')
+    ).group_by(
+        func.to_char(func.date_trunc('hour', SessionModel.start_time), 'HH24:MI:SS')
+    ).order_by(
+        func.count().desc()
+    ).where(
+        func.date(SessionModel.start_time) == date_selected
+    )
+    result = session.exec(query).first()
+    return result if result is not None else "00:00:00"
