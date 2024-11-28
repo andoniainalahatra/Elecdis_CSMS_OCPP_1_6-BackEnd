@@ -1,7 +1,7 @@
 import logging
 from fastapi import HTTPException
 import uuid
-
+import aio_pika
 import json
 from aio_pika import ExchangeType, Message as AioPikaMessage
 from pydantic import BaseModel
@@ -43,7 +43,7 @@ class DataTransfer:
                 # Publication du message
                 await exchange.publish(
                     AioPikaMessage(body=json.dumps(response_json).encode()),
-                    routing_key="data_transfer"
+                    routing_key="02"
                 )
             return {"status": "Message sent", "response": message}
         

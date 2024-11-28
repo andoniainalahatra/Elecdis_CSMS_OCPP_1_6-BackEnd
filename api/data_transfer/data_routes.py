@@ -7,9 +7,9 @@ router = APIRouter()
 
 data_transfer_service = DataTransfer()
 
-@router.post("/data_transfer")
+@router.post("/send")
 async def send_data_transfer(request: DataTransferRequest):
-    response = await data_transfer_service.send_data_transfer(
+    response = await data_transfer_service.on_data_transfer(
         vendor_id=request.vendor_id,
         message_id=request.message_id,
         data=request.data,
