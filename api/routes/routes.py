@@ -15,6 +15,7 @@ from api.Historique_defaillance.Historique_defaillance_routes import router as h
 from api.userCredit.UserCredit_routes import router as userCredit_routes
 from api.Historique_session.Historique_session_routes import router as history_session_routes
 from api.tarifs.Tarifs_routes  import router as tarifs_routes
+from api.data_transfer.data_routes import router as data_routes
 routers = APIRouter()
 
 config_description = str(possible_keys)
@@ -34,3 +35,4 @@ routers.include_router(historique_defaillance_routes, prefix="/historique_defail
 routers.include_router(dashboard_routes, prefix="/dashboard", tags=["Dashboard"])
 routers.include_router(userCredit_routes, prefix="/account", tags=["User Account"])
 routers.include_router(history_session_routes, prefix="/historique_session", tags=["historiques sessions "])
+routers.include_router(data_routes, prefix="/data_transfer", tags=["data_transfer"])
