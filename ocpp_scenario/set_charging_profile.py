@@ -3,16 +3,35 @@ from fastapi import HTTPException
 import uuid
 import aio_pika
 import json
+from datetime import datetime
 from aio_pika import ExchangeType, Message as AioPikaMessage
 from core.config import CONNECTION_RABBIT
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
 
 class SetChargingProfileHandler:
     
     async def on_set_charging_profile(self, connector_id, cs_charging_profiles, charge_point_id):
         unique_id = self.generate_unique_uuid()
+        
+        # Convertir les dates en format ISO string avant la sérialisation JSON
+        if isinstance(cs_charging_profiles, dict):
+            if 'chargingSchedule' in cs_charging_profiles:
+                if 'startSchedule' in cs_charging_profiles['chargingSchedule']:
+                    start_schedule = cs_charging_profiles['chargingSchedule']['startSchedule']
+                    if isinstance(start_schedule, datetime):
+                        cs_charging_profiles['chargingSchedule']['startSchedule'] = start_schedule.isoformat()
+
+            if 'validFrom' in cs_charging_profiles:
+                valid_from = cs_charging_profiles['validFrom']
+                if isinstance(valid_from, datetime):
+                    cs_charging_profiles['validFrom'] = valid_from.isoformat()
+
+            if 'validTo' in cs_charging_profiles:
+                valid_to = cs_charging_profiles['validTo']
+                if isinstance(valid_to, datetime):
+                    cs_charging_profiles['validTo'] = valid_to.isoformat()
+
         message = f'[2,"{unique_id}","SetChargingProfile",{{"connectorId":{connector_id},"csChargingProfiles":{json.dumps(cs_charging_profiles)}}}]'
         
         response_json = {
@@ -32,7 +51,7 @@ class SetChargingProfileHandler:
             return {"status": "Charging profile sent", "response": message}
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to send charging profile: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to send charging profile: {str(e)}")
 
     def generate_unique_uuid(self):
         return str(uuid.uuid4())
