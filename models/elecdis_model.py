@@ -44,6 +44,7 @@ class ChargePoint(TimestampMixin, table=True):
     state: int
     firmware_version: Optional[str]
     historique_status_chargepoint: List["Historique_status_chargepoint"] = Relationship(back_populates="chargepoint")
+    local_list: List["LocalList"] = Relationship(back_populates="chargepoint")
 
     __table_args__ = (Index("ix_chargepoint_id", "id"),)
 
@@ -354,3 +355,14 @@ class UserCredit(TimestampMixin, table=True):
 #     user: Optional["User"] = Relationship(back_populates="payements")
 #     historique_session: Optional["Historique_session"] = Relationship(back_populates="payements")
 #     __table_args__ = (Index("ix_payements_id", "id"),)
+
+class LocalList(TimestampMixin, table = True):
+    id:Optional[int] = Field(default=None, primary_key=True)
+    charge_point_id : Optional [str] = Field(foreign_key="chargepoint.id")
+    update_type: str
+
+    chargepoint : Optional[ChargePoint] = Relationship(back_populates="local_list")
+
+
+
+
