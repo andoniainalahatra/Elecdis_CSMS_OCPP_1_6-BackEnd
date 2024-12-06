@@ -20,8 +20,6 @@ class StatusEnum(str, Enum):
     
 
 
-
-
 def get_current_time_plus_3_hours() -> datetime:
     return datetime.utcnow() + timedelta(hours=3)
 
@@ -75,11 +73,13 @@ class Connector(TimestampMixin, table=True):
     connector_id: Optional[int]
     valeur: Optional[float] = Field(default=0)
     status: Optional[str]
+    is_lock:Optional[str]
     sessions: List["Session"] = Relationship(back_populates="connector")
     charge_point: Optional["ChargePoint"] = Relationship(back_populates="connectors")
     historique_status: List["Historique_status"] = Relationship(back_populates="connector")
     historique_metter_value: List["Historique_metter_value"] = Relationship(back_populates="connector")
     reservations:List["Reservation"] = Relationship(back_populates="connector")
+    reserve:List["History_reservation"] = Relationship(back_populates="connector")
     __table_args__ = (
         # PrimaryKeyConstraint('id', 'charge_point_id'),
         UniqueConstraint('id', 'charge_point_id', name='uq_connector_id_charge_point_id'),
@@ -92,9 +92,20 @@ class Reservation(TimestampMixin,table=True):
     connector_id: Optional[str]= Field(foreign_key="connector.id")
     date_reservation:datetime = Field(nullable=False)
     user_id: Optional[int] = Field(default=None, foreign_key="user_table.id")
-    status:Optional[str]=""
+    expirate_date:datetime = Field(nullable=False)
+    etat:Optional[int]
     user: Optional["User"] = Relationship(back_populates="reservations")
     connector: Optional["Connector"] = Relationship(back_populates="reservations")
+
+class History_reservation(TimestampMixin,table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tag_id: int = Field(foreign_key="tag.id")
+    date_utilisation:Optional[datetime]= Field(nullable=False)
+    connector_id: Optional[str]= Field(foreign_key="connector.id")
+    etat:Optional[int]
+    tag: Optional["Tag"] = Relationship(back_populates="history_reservation")
+    connector: Optional["Connector"] = Relationship(back_populates="reserve")
+
 
 
 class Historique_status(TimestampMixin, table=True):
@@ -292,6 +303,7 @@ class Tag(TimestampMixin, table=True):
     user_credit: List["UserCredit"] = Relationship(back_populates="tag")
     rfid_usage_history: List["Rfid_usage_history"] = Relationship(back_populates="tag")
     historique_session: List["Historique_session"] = Relationship(back_populates="tag")
+    history_reservation:List["History_reservation"] = Relationship(back_populates="tag")
 
 __table_args__ = (Index("ix_tag_id", "id"),)
 

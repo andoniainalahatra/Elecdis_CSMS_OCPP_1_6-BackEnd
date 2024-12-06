@@ -19,8 +19,9 @@ from api.tarifs.Tarifs_routes  import router as tarifs_routes
 from api.data_transfer.data_routes import router as data_routes
 
 from api.Reservation.Reservation_routes  import router as reservation_routes
-
-
+from api.unlock.unlock_routes import router as unlock_routes
+from api.set_charging.set_charging_routes import router as set_charging_routes
+from api.clear_charging.clear_charging_routes import router as clear_charging_routes
 routers = APIRouter()
 
 config_description = str(possible_keys)
@@ -44,4 +45,6 @@ routers.include_router(history_session_routes, prefix="/historique_session", tag
 routers.include_router(data_routes, prefix="/data_transfer", tags=["data_transfer"])
 
 routers.include_router(reservation_routes, prefix="/reservation", tags=["Reservation"])
-
+routers.include_router(unlock_routes, prefix="/unlock_connector", tags=["Connector"])
+routers.include_router(set_charging_routes, prefix="/set_charging", tags=["CP"])
+routers.include_router(clear_charging_routes, prefix="/clear_charging", tags=["CP"])
