@@ -1,7 +1,7 @@
 from api.Historique_defaillance.Historique_defaillance_models import Historique_defaillance_create,Historique_defaillance_update
 from models.elecdis_model import Historique_defailllance,StatusEnum,ChargePoint
 from models.Pagination import Pagination
-from sqlmodel import Session, select,func,extract,case
+from sqlmodel import Session, select,func,extract,case,desc,not_,join,and_
 from core.utils import *
 from sqlalchemy import or_
 from datetime import date, datetime,timedelta
@@ -43,6 +43,7 @@ def read_historique_defaillance(session : Session, page: int = 1, number_items: 
             select(Historique_defailllance,ChargePoint.id,ChargePoint.charge_point_model,ChargePoint.charge_point_vendors,ChargePoint.adresse)
             .join(ChargePoint, ChargePoint.id == Historique_defailllance.charge_point_id)
             .where(Historique_defailllance.etat==StatusEnum.no_resolve)
+            .order_by(desc(Historique_defailllance.id))
             .offset(pagination.offset)
             .limit(pagination.limit)
         ).all()
