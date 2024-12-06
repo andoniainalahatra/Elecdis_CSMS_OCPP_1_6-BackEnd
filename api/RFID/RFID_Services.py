@@ -194,3 +194,26 @@ def check_if_user_should_use_credit(session: Session, tag: str):
     if user.subscription.is_type_credit:
         return True
     return False
+
+def format_rfid(rfid: Tag):
+    status = "Accepted" if rfid.status == StatusEnum.active else "Rejected"
+    return {
+        "idTag": rfid.tag,
+        "idTagInfo": {
+            "status": status
+        }
+    }
+def format_list_rfids(list_tags : list[Tag]):
+    return [format_rfid(tag) for tag in list_tags]
+
+def get_local_lists_details(session: Session):
+    tags = session.exec(select(Tag).where(Tag.state != DELETED_STATE)).all()
+    return format_list_rfids(tags)
+
+def get_update_type (update_type: str):
+    update_type = update_type.strip()
+    if update_type == "Differential" or update_type == "differential" or update_type == "DIFFERENTIAL":
+        return "Differential"
+    if update_type == "Full" or update_type == "full" or update_type == "FULL":
+        return "Full"
+    return "Full"

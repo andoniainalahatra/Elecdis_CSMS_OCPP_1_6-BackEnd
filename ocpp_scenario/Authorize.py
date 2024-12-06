@@ -49,21 +49,23 @@ class Authorize:
             if not check_if_has_credit(session,tag.id):
                 status="Blocked"
                 reason="Not enough credit"
-        date_obj = datetime.now(timezone) 
-        date_without_ms = date_obj.replace(microsecond=0)
-        formatted_date = date_without_ms.replace(tzinfo=None)
-        reservation=check_reservation(date_utilisation=formatted_date,tag=idTag,charge_point_id=charge_point_id,session=session)
-        logging.error(f"Résultat de check_reservation: {formatted_date}")
-        if reservation: 
-            if reservation.get("is_reserved") is True:
-                val=create_history_reservation(tag_id=tag.id,date_utilisation=formatted_date,connector_id=reservation.get("connector_id"),etat=1)
-                create_history(val,session)
-                update_reservation_etat(2,session)
-            else:
-                status="Blocked"
-                reason=reservation.get("status")
-                val=create_history_reservation(tag_id=tag.id,date_utilisation=formatted_date,connector_id=reservation.get("connector_id"),etat=0)
-                create_history(val,session)
+
+
+#         date_obj = datetime.now(timezone) 
+#         date_without_ms = date_obj.replace(microsecond=0)
+#         formatted_date = date_without_ms.replace(tzinfo=None)
+#         reservation=check_reservation(date_utilisation=formatted_date,tag=idTag,charge_point_id=charge_point_id,session=session)
+#         logging.error(f"Résultat de check_reservation: {formatted_date}")
+#         if reservation: 
+#             if reservation.get("is_reserved") is True:
+#                 val=create_history_reservation(tag_id=tag.id,date_utilisation=formatted_date,connector_id=reservation.get("connector_id"),etat=1)
+#                 create_history(val,session)
+#                 update_reservation_etat(2,session)
+#             else:
+#                 status="Blocked"
+#                 reason=reservation.get("status")
+#                 val=create_history_reservation(tag_id=tag.id,date_utilisation=formatted_date,connector_id=reservation.get("connector_id"),etat=0)
+#                 create_history(val,session)
                        
         rfid_usage_history.action += f" {status} : {reason}"
         rfid_usage_history.tag_id = tag.id
