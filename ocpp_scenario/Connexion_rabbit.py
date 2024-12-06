@@ -33,11 +33,13 @@ class Connexion_rabbit:
             queue2=await channel.declare_queue("queue_2")
             queue3=await channel.declare_queue("connection_close")
             queue4=await channel.declare_queue("notification_error")
+            message_3=await channel.declare_queue("message_3")
             # Lier les queues à l'échange avec des clés de routage
             await queue1.bind(exchange,routing_key="01")
             await queue2.bind(exchange,routing_key="02")
             await queue3.bind(exchange,routing_key="03")
             await queue4.bind(exchange,routing_key="04")
+            await message_3.bind(exchange,routing_key="message_3")
 
     async def publish_message(self,content:list,routing:str):
         try:

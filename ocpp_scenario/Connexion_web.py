@@ -54,6 +54,8 @@ class Connexion:
                             await message_queue.put(val.to_dict())
                         if message[0] == 4:
                             await rabbit_mq.publish_message(val.to_dict(),"04")
+                        if message[0] == 3:
+                            await rabbit_mq.publish_message(val.to_dict(),"message_3")
                     
                     except (json.JSONDecodeError, IndexError) as e:
                         logging.error(f"Erreur de traitement du message : {e}")
